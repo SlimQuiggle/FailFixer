@@ -217,8 +217,8 @@ Always supervise first-layer/initial movement when testing resume files.</p>
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("FailFixer — License Agreement")
-        self.setMinimumSize(560, 560)
-        self.resize(620, 680)
+        self.setMinimumSize(480, 420)
+        self.resize(520, 460)
 
         if parent:
             self.setStyleSheet(parent.styleSheet())
@@ -229,29 +229,20 @@ Always supervise first-layer/initial movement when testing resume files.</p>
         text = QTextEdit()
         text.setReadOnly(True)
         text.setHtml(self.LICENSE_TEXT)
+        text.setMaximumHeight(300)
         layout.addWidget(text)
-
-        self.accept_checkbox = QCheckBox(
-            "I have read and agree to the License Agreement and Liability Disclaimer"
-        )
-        self.accept_checkbox.stateChanged.connect(self._update_buttons)
-        layout.addWidget(self.accept_checkbox)
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         self.ok_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
-        self.ok_button.setText("Agree & Continue")
-        self.ok_button.setEnabled(False)
+        self.ok_button.setText("I Agree")
         self.cancel_button = self.button_box.button(QDialogButtonBox.StandardButton.Cancel)
         self.cancel_button.setText("Decline & Exit")
 
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         layout.addWidget(self.button_box)
-
-    def _update_buttons(self) -> None:
-        self.ok_button.setEnabled(self.accept_checkbox.isChecked())
 
 
 # ---------------------------------------------------------------------------
