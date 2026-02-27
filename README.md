@@ -152,4 +152,4 @@ MIT
 
 ## Credits
 
-Built by [@SlimQuiggle](https://github.com/SlimQuiggle)
+Developed by **FleX3Designs** · [@SlimQuiggle](https://github.com/SlimQuiggle)

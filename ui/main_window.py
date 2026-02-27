@@ -783,6 +783,14 @@ class MainWindow(QMainWindow):
         faq_btn.clicked.connect(self._show_faq)
         root.addWidget(faq_btn)
 
+        # --- Credit ---
+        credit_label = QLabel("Developed by FleX3Designs")
+        credit_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        credit_label.setStyleSheet(
+            "QLabel { color: #555570; font-size: 11px; padding: 4px 0; }"
+        )
+        root.addWidget(credit_label)
+
         # Status bar
         self.setStatusBar(QStatusBar())
         self.statusBar().showMessage("Ready")
