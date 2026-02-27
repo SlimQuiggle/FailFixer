@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import platform
 import re
 import sys
 import time
@@ -10,8 +11,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QMimeData, QSettings
-from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QDoubleValidator, QIcon, QPixmap
+from PyQt6.QtCore import Qt, QMimeData, QSettings, QUrl
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QDoubleValidator, QIcon, QPixmap, QDesktopServices
 from PyQt6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -577,6 +578,113 @@ class ActivationDialog(QDialog):
 
 
 # ---------------------------------------------------------------------------
+# Bug Report Dialog
+# ---------------------------------------------------------------------------
+
+class BugReportDialog(QDialog):
+    """Collect a structured bug report and open email client."""
+
+    SUPPORT_EMAIL = "support@failfixer.com"
+
+    def __init__(self, parent=None, firmware: str = "", machine_id: str = "") -> None:
+        super().__init__(parent)
+        self.setWindowTitle("FailFixer — Report a Bug")
+        self.setMinimumSize(520, 520)
+        self.resize(560, 620)
+
+        if parent:
+            self.setStyleSheet(parent.styleSheet())
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(8)
+
+        intro = QLabel(
+            "Send a structured bug report to support@failfixer.com.\n"
+            "Include as much detail as possible so we can reproduce it quickly."
+        )
+        intro.setWordWrap(True)
+        layout.addWidget(intro)
+
+        self.email_input = QLineEdit()
+        self.email_input.setPlaceholderText("Your email")
+        layout.addWidget(self.email_input)
+
+        self.version_input = QLineEdit()
+        self.version_input.setPlaceholderText("App version (example: v1.0.0-beta)")
+        layout.addWidget(self.version_input)
+
+        self.firmware_input = QLineEdit()
+        self.firmware_input.setPlaceholderText("Firmware (Marlin / Klipper / RepRapFirmware)")
+        self.firmware_input.setText(firmware)
+        layout.addWidget(self.firmware_input)
+
+        self.os_input = QLineEdit()
+        self.os_input.setPlaceholderText("OS (Windows 10/11)")
+        self.os_input.setText(platform.platform())
+        layout.addWidget(self.os_input)
+
+        self.steps_input = QTextEdit()
+        self.steps_input.setPlaceholderText("Steps to reproduce (1,2,3...)")
+        self.steps_input.setMaximumHeight(90)
+        layout.addWidget(self.steps_input)
+
+        self.expected_input = QTextEdit()
+        self.expected_input.setPlaceholderText("Expected result")
+        self.expected_input.setMaximumHeight(70)
+        layout.addWidget(self.expected_input)
+
+        self.actual_input = QTextEdit()
+        self.actual_input.setPlaceholderText("Actual result / error message")
+        self.actual_input.setMaximumHeight(100)
+        layout.addWidget(self.actual_input)
+
+        self.machine_id = machine_id
+
+        btns = QHBoxLayout()
+        copy_btn = QPushButton("Copy Report")
+        copy_btn.clicked.connect(self._copy_report)
+        btns.addWidget(copy_btn)
+
+        email_btn = QPushButton("Open Email Draft")
+        email_btn.clicked.connect(self._open_email_draft)
+        btns.addWidget(email_btn)
+
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.close)
+        btns.addWidget(close_btn)
+
+        layout.addLayout(btns)
+
+    def _build_report_text(self) -> str:
+        ts = datetime.now(timezone.utc).isoformat()
+        return (
+            f"Reporter Email: {self.email_input.text().strip()}\n"
+            f"App Version: {self.version_input.text().strip()}\n"
+            f"Firmware: {self.firmware_input.text().strip()}\n"
+            f"OS: {self.os_input.text().strip()}\n"
+            f"Machine Fingerprint: {self.machine_id}\n"
+            f"Submitted (UTC): {ts}\n\n"
+            f"Steps to Reproduce:\n{self.steps_input.toPlainText().strip()}\n\n"
+            f"Expected Result:\n{self.expected_input.toPlainText().strip()}\n\n"
+            f"Actual Result:\n{self.actual_input.toPlainText().strip()}\n"
+        )
+
+    def _copy_report(self) -> None:
+        QApplication.clipboard().setText(self._build_report_text())
+        QMessageBox.information(self, "Copied", "Bug report copied to clipboard.")
+
+    def _open_email_draft(self) -> None:
+        subject = "FailFixer Bug Report"
+        body = self._build_report_text()
+        url = QUrl(
+            f"mailto:{self.SUPPORT_EMAIL}?subject={QUrl.toPercentEncoding(subject).data().decode()}"
+            f"&body={QUrl.toPercentEncoding(body).data().decode()}"
+        )
+        QDesktopServices.openUrl(url)
+
+
+# ---------------------------------------------------------------------------
 # Main Window
 # ---------------------------------------------------------------------------
 
@@ -1125,6 +1233,17 @@ class MainWindow(QMainWindow):
         legal_btn.clicked.connect(self._show_license)
         info_buttons.addWidget(legal_btn)
 
+        bug_btn = QPushButton("🐞  Report Bug")
+        bug_btn.setStyleSheet(
+            "QPushButton { background-color: #132a3a; color: #5cd6ff; "
+            "font-weight: 600; border: 1px solid #5cd6ff; border-radius: 6px; "
+            "padding: 6px 16px; }"
+            "QPushButton:hover { background-color: #18364a; }"
+        )
+        bug_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        bug_btn.clicked.connect(self._show_bug_report)
+        info_buttons.addWidget(bug_btn)
+
         root.addLayout(info_buttons)
 
         # --- Credit ---
@@ -1244,6 +1363,12 @@ class MainWindow(QMainWindow):
     def _show_license(self) -> None:
         """Show the license/liability dialog."""
         dialog = LicenseDialog(self)
+        dialog.exec()
+
+    def _show_bug_report(self) -> None:
+        """Show bug report dialog with structured fields."""
+        firmware = self.profile_combo.currentText() if hasattr(self, "profile_combo") else ""
+        dialog = BugReportDialog(self, firmware=firmware, machine_id=machine_fingerprint())
         dialog.exec()
 
     # ------------------------------------------------------------------
