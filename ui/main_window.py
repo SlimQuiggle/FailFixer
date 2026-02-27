@@ -583,7 +583,7 @@ class ActivationDialog(QDialog):
 class MainWindow(QMainWindow):
     """Primary FailFixer UI."""
 
-    WINDOW_TITLE = "FailFixer — Resume Failed Print"
+    WINDOW_TITLE = "FailFixer BETA — Resume Failed Print"
 
     def __init__(self) -> None:
         super().__init__()
@@ -927,7 +927,7 @@ class MainWindow(QMainWindow):
 
         header_text_col = QVBoxLayout()
         header_text_col.setSpacing(0)
-        header_title = QLabel("FailFixer")
+        header_title = QLabel("FailFixer BETA")
         header_title.setObjectName("headerTitle")
         header_text_col.addWidget(header_title)
         header_subtitle = QLabel("Resume Failed 3D Prints")
