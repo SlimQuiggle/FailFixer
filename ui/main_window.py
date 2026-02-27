@@ -294,8 +294,8 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(self.WINDOW_TITLE)
-        self.setMinimumSize(520, 540)
-        self.resize(560, 700)
+        self.setMinimumSize(560, 800)
+        self.resize(580, 880)
 
         # Set window icon
         logo_path = Path(__file__).resolve().parent.parent / "assets" / "logo.png"
