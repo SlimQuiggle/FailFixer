@@ -7,13 +7,15 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QMimeData
+from PyQt6.QtCore import Qt, QMimeData, QSettings
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QDoubleValidator, QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QButtonGroup,
+    QCheckBox,
     QComboBox,
     QDialog,
+    QDialogButtonBox,
     QDoubleSpinBox,
     QFileDialog,
     QGroupBox,
@@ -180,6 +182,79 @@ class CollapsibleGroupBox(QGroupBox):
 
 
 # ---------------------------------------------------------------------------
+# License / Legal Dialog
+# ---------------------------------------------------------------------------
+
+class LicenseDialog(QDialog):
+    """License agreement + liability disclaimer gate."""
+
+    LICENSE_TEXT = """
+<h2 style="color:#00d4aa;">FailFixer Software License Agreement (EULA)</h2>
+
+<p><b>Developer:</b> FleX3Designs</p>
+<p><b>Product:</b> FailFixer</p>
+
+<h3 style="color:#ff6b35;">1) License Grant</h3>
+<p>You are granted a limited, non-exclusive, non-transferable license to use this software on your own systems.</p>
+
+<h3 style="color:#ff6b35;">2) No Warranty</h3>
+<p>This software is provided <b>"AS IS"</b> without warranties of any kind, express or implied, including merchantability or fitness for a particular purpose.</p>
+
+<h3 style="color:#ff6b35;">3) Printer Safety Responsibility</h3>
+<p>You are solely responsible for verifying generated G-code, printer configuration, and safe operation before printing.
+Always supervise first-layer/initial movement when testing resume files.</p>
+
+<h3 style="color:#ff6b35;">4) Limitation of Liability</h3>
+<p><b>FleX3Designs is not liable for printer damage, hardware failure, fire, injury, print defects, material loss, downtime, or any direct/indirect damages</b> arising from use of this software.</p>
+
+<h3 style="color:#ff6b35;">5) Intended Use</h3>
+<p>FailFixer is an assistive tool. It does not replace user judgment, calibration, maintenance, or safety checks.</p>
+
+<h3 style="color:#ff6b35;">6) Acceptance</h3>
+<p>By checking the acceptance box and using the software, you agree to these terms.</p>
+"""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("FailFixer — License Agreement")
+        self.setMinimumSize(560, 560)
+        self.resize(620, 680)
+
+        if parent:
+            self.setStyleSheet(parent.styleSheet())
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 16, 16, 16)
+
+        text = QTextEdit()
+        text.setReadOnly(True)
+        text.setHtml(self.LICENSE_TEXT)
+        layout.addWidget(text)
+
+        self.accept_checkbox = QCheckBox(
+            "I have read and agree to the License Agreement and Liability Disclaimer"
+        )
+        self.accept_checkbox.stateChanged.connect(self._update_buttons)
+        layout.addWidget(self.accept_checkbox)
+
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        self.ok_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
+        self.ok_button.setText("Agree & Continue")
+        self.ok_button.setEnabled(False)
+        self.cancel_button = self.button_box.button(QDialogButtonBox.StandardButton.Cancel)
+        self.cancel_button.setText("Decline & Exit")
+
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+    def _update_buttons(self) -> None:
+        self.ok_button.setEnabled(self.accept_checkbox.isChecked())
+
+
+# ---------------------------------------------------------------------------
 # FAQ Dialog
 # ---------------------------------------------------------------------------
 
@@ -306,6 +381,7 @@ class MainWindow(QMainWindow):
 
         self._apply_theme()
         self._build_ui()
+        self._ensure_license_accepted()
 
     # ------------------------------------------------------------------
     # Theme
@@ -781,7 +857,9 @@ class MainWindow(QMainWindow):
         )
         root.addWidget(warning_label)
 
-        # --- FAQ button ---
+        # --- FAQ + Legal buttons ---
+        info_buttons = QHBoxLayout()
+
         faq_btn = QPushButton("❓  FAQ — Common Questions")
         faq_btn.setStyleSheet(
             "QPushButton { background-color: #0f3460; color: #00d4aa; "
@@ -791,7 +869,20 @@ class MainWindow(QMainWindow):
         )
         faq_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         faq_btn.clicked.connect(self._show_faq)
-        root.addWidget(faq_btn)
+        info_buttons.addWidget(faq_btn)
+
+        legal_btn = QPushButton("⚖️  License & Liability")
+        legal_btn.setStyleSheet(
+            "QPushButton { background-color: #2a1a2e; color: #ff6b35; "
+            "font-weight: 600; border: 1px solid #ff6b35; border-radius: 6px; "
+            "padding: 6px 16px; }"
+            "QPushButton:hover { background-color: #3a223e; }"
+        )
+        legal_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        legal_btn.clicked.connect(self._show_license)
+        info_buttons.addWidget(legal_btn)
+
+        root.addLayout(info_buttons)
 
         # --- Credit ---
         credit_label = QLabel("Developed by FleX3Designs")
@@ -873,9 +964,34 @@ class MainWindow(QMainWindow):
     def _log(self, text: str) -> None:
         self.status_text.append(text)
 
+    def _ensure_license_accepted(self) -> None:
+        """Require EULA acceptance before using the app."""
+        settings = QSettings("FleX3Designs", "FailFixer")
+        accepted = settings.value("legal/eula_accepted", False, type=bool)
+        if accepted:
+            return
+
+        dialog = LicenseDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            settings.setValue("legal/eula_accepted", True)
+            settings.sync()
+            self.statusBar().showMessage("License accepted")
+        else:
+            QMessageBox.information(
+                self,
+                "License Required",
+                "You must accept the license agreement to use FailFixer.",
+            )
+            self.close()
+
     def _show_faq(self) -> None:
         """Show the FAQ dialog."""
         dialog = FAQDialog(self)
+        dialog.exec()
+
+    def _show_license(self) -> None:
+        """Show the license/liability dialog."""
+        dialog = LicenseDialog(self)
         dialog.exec()
 
     # ------------------------------------------------------------------
