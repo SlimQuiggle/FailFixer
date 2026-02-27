@@ -217,8 +217,8 @@ Always supervise first-layer/initial movement when testing resume files.</p>
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("FailFixer — License Agreement")
-        self.setMinimumSize(480, 420)
-        self.resize(520, 460)
+        self.setMinimumSize(440, 380)
+        self.resize(480, 420)
 
         if parent:
             self.setStyleSheet(parent.styleSheet())
@@ -372,7 +372,7 @@ class MainWindow(QMainWindow):
 
         self._apply_theme()
         self._build_ui()
-        self._ensure_license_accepted()
+        self._license_checked = False
 
     # ------------------------------------------------------------------
     # Theme
@@ -890,6 +890,12 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Actions
     # ------------------------------------------------------------------
+
+    def showEvent(self, event) -> None:  # type: ignore[override]
+        super().showEvent(event)
+        if not self._license_checked:
+            self._license_checked = True
+            self._ensure_license_accepted()
 
     def _gather_params(self) -> dict:
         """Collect current UI state into a kwargs dict for the controller."""
