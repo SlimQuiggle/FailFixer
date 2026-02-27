@@ -476,6 +476,42 @@ class TestResumeGeneratorZOffset:
         assert text.endswith("\n")
 
 
+class TestResumeGeneratorFromPlate:
+    """Plate mode should print selected section from Z0."""
+
+    def test_from_plate_header_uses_full_homing(self, parsed_gcode):
+        gen = ResumeGenerator()
+        mapper = LayerMapper(parsed_gcode.layers)
+        match = mapper.by_layer_number(1)
+        config = ResumeConfig(
+            resume_layer=1,
+            resume_z=0.6,
+            bed_temp=60.0,
+            nozzle_temp=200.0,
+            resume_mode="from_plate",
+        )
+        lines = gen.generate(parsed_gcode, match, config)
+        text = "\n".join(lines)
+        assert "Resume Mode: from_plate" in text
+        assert "G28                        ; Home all axes" in text
+
+    def test_from_plate_rebases_z_values(self, parsed_gcode):
+        gen = ResumeGenerator()
+        mapper = LayerMapper(parsed_gcode.layers)
+        match = mapper.by_layer_number(1)
+        config = ResumeConfig(
+            resume_layer=1,
+            resume_z=0.6,
+            bed_temp=60.0,
+            nozzle_temp=200.0,
+            resume_mode="from_plate",
+        )
+        lines = gen.generate(parsed_gcode, match, config)
+        text = "\n".join(lines)
+        assert "G1 X10 Y10 Z0.000 E3.0" in text
+        assert "G1 X10 Y10 Z0.300 E5.0" in text
+
+
 # ======================================================================
 # 4. Validator tests
 # ======================================================================
@@ -561,6 +597,20 @@ class TestValidatorG28Z:
         ]
         v = Validator()
         result = v.validate(lines)
+        codes = [e.code for e in result.errors]
+        assert "Z_HOME" not in codes
+
+    def test_g28_z_allowed_in_from_plate_mode(self):
+        lines = [
+            "M140 S60",
+            "M190 S60",
+            "M104 S200",
+            "M109 S200",
+            "G28 Z",
+            "G1 X10 Y10 E1.0",
+        ]
+        v = Validator()
+        result = v.validate(lines, resume_mode="from_plate")
         codes = [e.code for e in result.errors]
         assert "Z_HOME" not in codes
 
@@ -748,6 +798,20 @@ class TestControllerRun:
             stripped = line.strip().upper()
             if stripped.startswith("G28"):
                 assert "Z" not in stripped
+
+    def test_run_from_plate_mode_rebases_to_z_zero(self, tmp_path):
+        gcode_path = _write_gcode(tmp_path, GCODE_LAYER_COMMENT)
+        ctrl = Controller(profiles_dir=str(tmp_path / "profiles"))
+        request = ResumeRequest(
+            input_path=str(gcode_path),
+            resume_selector=1,
+            output_dir=str(tmp_path),
+            resume_mode="from_plate",
+        )
+        result = ctrl.run(request)
+        content = result.output_path.read_text(encoding="utf-8")
+        assert "Resume Mode: from_plate" in content
+        assert "G1 X10 Y10 Z0.000 E3.0" in content
 
 
 class TestFailFixerControllerProcess:

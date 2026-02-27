@@ -359,6 +359,10 @@ below. You can minimize this by:</p>
 doesn't need to stay powered on. FailFixer generates a fresh G-code file that heats
 everything back up and starts from the resume layer.</p>
 
+<h3 style="color:#00d4aa;">Which resume mode should I use?</h3>
+<p><b>Resume in air at fail height</b> (default) continues directly on top of the failed part still on the bed.
+Use <b>Restart from plate</b> when you want to print the remaining section from Z0 on the build plate, then glue it to the failed part later.</p>
+
 <h3 style="color:#00d4aa;">What if my print failed due to a clog or filament issue?</h3>
 <p>Fix the underlying problem first (clear the clog, load new filament, etc.), then
 use FailFixer to resume. The resume file will prime the nozzle before starting, but
