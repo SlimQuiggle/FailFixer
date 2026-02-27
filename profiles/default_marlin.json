@@ -1,0 +1,8 @@
+{
+  "firmware": "marlin",
+  "safe_lift_mm": 10,
+  "park_x": 0,
+  "park_y": 200,
+  "tolerance_mm": 0.15,
+  "bed_mesh_cmd": "M420 S1"
+}

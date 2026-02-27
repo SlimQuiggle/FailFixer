@@ -1,0 +1,9 @@
+{
+  "firmware": "klipper",
+  "safe_lift_mm": 10,
+  "park_x": 0,
+  "park_y": 200,
+  "tolerance_mm": 0.15,
+  "bed_mesh_cmd": "BED_MESH_PROFILE LOAD=default",
+  "notes": "Klipper uses macro-based homing. G28 X Y works. G92 Z works. M420 not needed (Klipper handles mesh differently via BED_MESH_PROFILE LOAD=default)."
+}

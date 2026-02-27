@@ -1,0 +1,9 @@
+{
+  "firmware": "reprapfirmware",
+  "safe_lift_mm": 10,
+  "park_x": 0,
+  "park_y": 200,
+  "tolerance_mm": 0.15,
+  "bed_mesh_cmd": "M376 H5",
+  "notes": "RepRapFirmware (Duet). G28 X Y works. G92 Z works. Use M376 for bed compensation instead of M420."
+}

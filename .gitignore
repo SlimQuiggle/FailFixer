@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+build/
+dist/
+*.spec
+*.egg-info/
+.pytest_cache/
+test_sample.gcode
+test_sample_resume_*.gcode
