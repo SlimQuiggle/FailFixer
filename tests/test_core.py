@@ -424,6 +424,29 @@ class TestResumeGeneratorMovement:
         assert ";LAYER:2" in text
 
 
+class TestResumeGeneratorBuildPlateMode:
+    """Test build-plate mode behavior."""
+
+    def test_build_plate_mode_shifts_z_down(self, parsed_gcode):
+        gen = ResumeGenerator()
+        mapper = LayerMapper(parsed_gcode.layers)
+        match = mapper.by_layer_number(1)
+        config = ResumeConfig(
+            resume_layer=1,
+            resume_z=0.6,
+            bed_temp=60.0,
+            nozzle_temp=200.0,
+            safe_lift_mm=10.0,
+            z_offset_mm=0.0,
+            resume_mode="from_plate",
+        )
+        lines = gen.generate(parsed_gcode, match, config)
+        text = "\n".join(lines)
+        assert "Resume Mode: from_plate" in text
+        assert "G28" in text
+        assert "G1 X10 Y10 Z0.000 E3.0" in text
+
+
 class TestResumeGeneratorZOffset:
     """Test Z offset application."""
 
@@ -782,6 +805,20 @@ class TestFailFixerControllerProcess:
         )
         assert result.bed_temp == 60.0
         assert result.nozzle_temp == 200.0
+
+    def test_process_build_plate_mode(self, tmp_path):
+        gcode_path = _write_gcode(tmp_path, GCODE_LAYER_COMMENT)
+        out = tmp_path / "build_plate_resume.gcode"
+        ctrl = FailFixerController(profiles_dir=str(tmp_path / "profiles"))
+        result = ctrl.process(
+            gcode_path=str(gcode_path),
+            layer_num=1,
+            resume_mode="from_plate",
+            output_path=str(out),
+        )
+        content = result.output_path.read_text(encoding="utf-8")
+        assert "Resume Mode: from_plate" in content
+        assert "G28" in content
 
 
 # ======================================================================

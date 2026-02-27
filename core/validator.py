@@ -12,6 +12,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Literal
 
 
 class Severity(Enum):
@@ -97,6 +98,7 @@ class Validator:
         lines: list[str],
         resume_z: float = 0.0,
         safe_lift_z: float = 10.0,
+        resume_mode: Literal["in_air", "from_plate"] = "in_air",
     ) -> ValidationResult:
         result = ValidationResult()
 
@@ -178,8 +180,13 @@ class Validator:
                     has_xy_move = True
                     first_xy_line = line_num
 
-            # --- Z collision: only check after header ---
-            if not in_header and z_match and cmd_upper.startswith(("G0", "G1")):
+            # --- Z collision: in-air mode only ---
+            if (
+                resume_mode == "in_air"
+                and not in_header
+                and z_match
+                and cmd_upper.startswith(("G0", "G1"))
+            ):
                 new_z = float(z_match.group(1))
                 # Warn if Z goes below resume_z minus a small tolerance
                 if new_z < resume_z - 0.5:
@@ -193,15 +200,14 @@ class Validator:
                         code="Z_COLLISION",
                     ))
 
-            # --- Detect G28 Z (forbidden) ---
-            if cmd_upper.startswith("G28"):
-                if "Z" in cmd_upper:
-                    result.issues.append(ValidationIssue(
-                        severity=Severity.ERROR,
-                        line_number=line_num,
-                        message="G28 Z detected — auto-homing Z is forbidden in resume files.",
-                        code="Z_HOME",
-                    ))
+            # --- Detect G28 Z (forbidden in in-air mode) ---
+            if resume_mode == "in_air" and cmd_upper.startswith("G28") and "Z" in cmd_upper:
+                result.issues.append(ValidationIssue(
+                    severity=Severity.ERROR,
+                    line_number=line_num,
+                    message="G28 Z detected — auto-homing Z is forbidden in in-air resume mode.",
+                    code="Z_HOME",
+                ))
 
         # --- Post-scan checks ---
         if not has_bed_temp:
@@ -220,8 +226,8 @@ class Validator:
                 code="MISSING_NOZZLE_TEMP",
             ))
 
-        # Z must be lifted before first XY move
-        if has_xy_move and first_xy_line is not None:
+        # Z must be lifted before first XY move (in-air mode only)
+        if resume_mode == "in_air" and has_xy_move and first_xy_line is not None:
             if first_z_line is None or first_z_line > first_xy_line:
                 result.issues.append(ValidationIssue(
                     severity=Severity.ERROR,

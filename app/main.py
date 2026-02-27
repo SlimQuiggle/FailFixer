@@ -10,6 +10,7 @@ Options:
     --offset    Z offset adjustment in mm (default: 0.0)
     --output    Output directory (default: same as input)
     --profile   Printer profile filename (default: default_marlin.json)
+    --resume-mode  in_air (default) or from_plate
 """
 
 from __future__ import annotations
@@ -62,6 +63,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Printer profile filename (default: default_marlin.json).",
     )
+    p.add_argument(
+        "--resume-mode",
+        choices=["in_air", "from_plate"],
+        default="in_air",
+        help="Recovery mode: in_air (continue on part) or from_plate (print remaining section on bed).",
+    )
     return p
 
 
@@ -87,6 +94,7 @@ def main(argv: list[str] | None = None) -> int:
         z_offset_mm=args.offset,
         output_dir=args.output,
         profile_name=args.profile,
+        resume_mode=args.resume_mode,
     )
 
     controller = Controller()

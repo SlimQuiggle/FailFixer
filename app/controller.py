@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 from ..core.gcode_parser import GCodeParser, ParsedGCode
 from ..core.layer_mapper import LayerMapper, LayerMatch
@@ -29,6 +29,7 @@ class ResumeRequest:
     z_offset_mm: float = 0.0
     output_dir: str | Path | None = None     # defaults to same dir as input
     profile_name: str | None = None          # profile filename or None for default
+    resume_mode: Literal["in_air", "from_plate"] = "in_air"
 
 
 @dataclass
@@ -91,6 +92,7 @@ class Controller:
             safe_lift_mm=profile.safe_lift_mm,
             z_offset_mm=request.z_offset_mm,
             bed_mesh_cmd=profile.bed_mesh_cmd,
+            resume_mode=request.resume_mode,
         )
 
         # Temperature sanity
@@ -113,6 +115,7 @@ class Controller:
             lines,
             resume_z=config.resume_z + config.z_offset_mm,
             safe_lift_z=config.safe_lift_mm,
+            resume_mode=config.resume_mode,
         )
         for issue in validation.warnings:
             warnings.append(f"[{issue.code}] line {issue.line_number}: {issue.message}")
@@ -211,6 +214,7 @@ class FailFixerController:
         park_y: Optional[float] = None,
         profile: str = "default_marlin",
         output_path: Optional[str] = None,
+        resume_mode: Literal["in_air", "from_plate"] = "in_air",
     ) -> ProcessResult:
         """Run the full pipeline and return a *ProcessResult*.
 
@@ -240,6 +244,7 @@ class FailFixerController:
             z_offset_mm=z_offset,
             output_dir=output_dir,
             profile_name=profile_name,
+            resume_mode=resume_mode,
         )
 
         result = self._core.run(request)

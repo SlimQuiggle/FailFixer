@@ -110,6 +110,13 @@ class ResumePointPage(QWizardPage):
         self.radio_layer.toggled.connect(lambda on: self.layer_spin.setEnabled(on))
         self.radio_z.toggled.connect(lambda on: self.z_spin.setEnabled(on))
 
+        self.mode_in_air = QRadioButton("Resume in air at fail height")
+        self.mode_in_air.setChecked(True)
+        layout.addWidget(self.mode_in_air)
+
+        self.mode_from_plate = QRadioButton("Restart from plate (for glue workflow)")
+        layout.addWidget(self.mode_from_plate)
+
     def use_layer(self) -> bool:
         return self.radio_layer.isChecked()
 
@@ -118,6 +125,9 @@ class ResumePointPage(QWizardPage):
 
     def z_height(self) -> float:
         return self.z_spin.value()
+
+    def resume_mode(self) -> str:
+        return "in_air" if self.mode_in_air.isChecked() else "from_plate"
 
 
 # ---------------------------------------------------------------------------
@@ -147,6 +157,8 @@ class ConfirmPage(QWizardPage):
         else:
             lines.append(f"<b>Resume at Z:</b> {wizard.resume_page.z_height():.2f} mm")
 
+        mode_label = "In-air at fail height" if wizard.resume_page.resume_mode() == "in_air" else "Restart from plate"
+        lines.append(f"<b>Resume mode:</b> {mode_label}")
         lines.append(f"<b>Profile:</b> default_marlin")
         self.summary_label.setText("<br>".join(lines))
 
@@ -181,6 +193,7 @@ class ResumeWizard(QWizard):
         params: dict = {
             "gcode_path": self.gcode_path(),
             "profile": "default_marlin",
+            "resume_mode": self.resume_page.resume_mode(),
         }
         if self.resume_page.use_layer():
             params["layer_num"] = self.resume_page.layer_num()
@@ -210,6 +223,7 @@ class ResumeWizard(QWizard):
                 z_offset=0.0,
                 profile=params.get("profile", "default_marlin"),
                 output_path=save_path,
+                resume_mode=params.get("resume_mode", "in_air"),
             )
             QMessageBox.information(
                 self,
