@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
+import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -36,20 +39,67 @@ from PyQt6.QtWidgets import (
 )
 
 from failfixer.app.controller import FailFixerController
+from failfixer.core.licensing import machine_fingerprint, verify_license
+from failfixer.core.lemon_licensing import (
+    activate_license as lemon_activate,
+    validate_license as lemon_validate,
+    LEMON_GRACE_DAYS,
+    LEMON_TIMEOUT_SEC,
+)
+
+# ---------------------------------------------------------------------------
+# Lemon key detection helper
+# ---------------------------------------------------------------------------
+
+_LEMON_KEY_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
+
+def _is_lemon_key(key: str) -> bool:
+    """Return True if *key* looks like a Lemon Squeezy UUID license key."""
+    return bool(_LEMON_KEY_RE.match(key.strip()))
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _runtime_root() -> Path:
+    """Return runtime root for source runs and PyInstaller builds."""
+    # PyInstaller onefile extracts to a temp folder and exposes it via _MEIPASS
+    if hasattr(sys, "_MEIPASS"):
+        return Path(getattr(sys, "_MEIPASS"))
+    # Source run: failfixer/ui/main_window.py -> project root is parent.parent
+    return Path(__file__).resolve().parent.parent
+
+
 def _assets_dir() -> Path:
-    """Return the assets/ directory relative to the project root."""
-    return Path(__file__).resolve().parent.parent / "assets"
+    """Return the assets/ directory for source and packaged builds."""
+    root = _runtime_root()
+    candidates = [
+        root / "assets",
+        root / "failfixer" / "assets",
+        Path(__file__).resolve().parent.parent / "assets",
+    ]
+    for p in candidates:
+        if p.is_dir():
+            return p
+    return candidates[0]
 
 
 def _profiles_dir() -> Path:
-    """Return the profiles/ directory relative to the project root."""
-    return Path(__file__).resolve().parent.parent / "profiles"
+    """Return the profiles/ directory for source and packaged builds."""
+    root = _runtime_root()
+    candidates = [
+        root / "profiles",
+        root / "failfixer" / "profiles",
+        Path(__file__).resolve().parent.parent / "profiles",
+    ]
+    for p in candidates:
+        if p.is_dir():
+            return p
+    return candidates[0]
 
 
 def _load_profile_names() -> list[str]:
@@ -349,6 +399,184 @@ to verify or adjust settings before printing.</p>
 
 
 # ---------------------------------------------------------------------------
+# Activation Dialog (license key entry)
+# ---------------------------------------------------------------------------
+
+class ActivationDialog(QDialog):
+    """Dialog for entering a FailFixer license key (Lemon Squeezy or legacy FFX1)."""
+
+    # Result attributes set on successful activation
+    accepted_key: Optional[str] = None
+    accepted_type: Optional[str] = None          # "lemon" | "ffx1"
+    lemon_instance_id: Optional[str] = None
+    lemon_status: Optional[str] = None
+    lemon_customer_email: Optional[str] = None
+
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("FailFixer — Activation")
+        self.setMinimumSize(460, 300)
+        self.resize(500, 320)
+
+        if parent:
+            self.setStyleSheet(parent.styleSheet())
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
+
+        # Header
+        header = QLabel("🔑  Activate FailFixer")
+        header.setStyleSheet(
+            "QLabel { color: #00d4aa; font-size: 16px; font-weight: 700; }"
+        )
+        layout.addWidget(header)
+
+        info = QLabel(
+            "Paste your Lemon Squeezy license key from your purchase email.\n"
+            "Legacy FFX1 keys are also accepted for offline activation."
+        )
+        info.setWordWrap(True)
+        info.setStyleSheet("QLabel { color: #b0b0c0; font-size: 12px; }")
+        layout.addWidget(info)
+
+        # Machine fingerprint display + copy  (shown as debug/support value)
+        fp_row = QHBoxLayout()
+        fp_label = QLabel("Machine ID (support):")
+        fp_label.setStyleSheet("QLabel { color: #8a8aa0; font-size: 11px; }")
+        fp_row.addWidget(fp_label)
+
+        self._machine_fp = machine_fingerprint()
+        self._short_fp = self._machine_fp[:12]
+        self._instance_name = f"FailFixer-{self._short_fp}"
+        self.fp_edit = QLineEdit(self._machine_fp)
+        self.fp_edit.setReadOnly(True)
+        self.fp_edit.setStyleSheet(
+            "QLineEdit { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; }"
+        )
+        fp_row.addWidget(self.fp_edit, stretch=1)
+
+        copy_btn = QPushButton("Copy")
+        copy_btn.setFixedWidth(60)
+        copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        copy_btn.clicked.connect(self._copy_fingerprint)
+        fp_row.addWidget(copy_btn)
+        layout.addLayout(fp_row)
+
+        # License key input
+        key_label = QLabel("License Key:")
+        key_label.setStyleSheet("QLabel { color: #e0e0e0; font-weight: 600; }")
+        layout.addWidget(key_label)
+
+        self.key_edit = QLineEdit()
+        self.key_edit.setPlaceholderText(
+            "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  or  FFX1-…"
+        )
+        self.key_edit.setStyleSheet(
+            "QLineEdit { font-family: 'Cascadia Code','Consolas',monospace; font-size: 13px; padding: 6px; }"
+        )
+        layout.addWidget(self.key_edit)
+
+        # Status message
+        self.status_label = QLabel("")
+        self.status_label.setWordWrap(True)
+        self.status_label.setStyleSheet("QLabel { font-size: 12px; }")
+        layout.addWidget(self.status_label)
+
+        # Buttons
+        btn_row = QHBoxLayout()
+        self.activate_btn = QPushButton("Activate")
+        self.activate_btn.setStyleSheet(
+            "QPushButton { background-color: #00d4aa; color: #1a1a2e; font-weight: 700; "
+            "border-radius: 6px; padding: 8px 24px; }"
+            "QPushButton:hover { background-color: #33e0bb; }"
+        )
+        self.activate_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.activate_btn.clicked.connect(self._on_activate)
+        btn_row.addWidget(self.activate_btn)
+
+        self.skip_btn = QPushButton("Skip (limited)")
+        self.skip_btn.setStyleSheet(
+            "QPushButton { color: #8a8aa0; background: transparent; border: 1px solid #333; "
+            "border-radius: 6px; padding: 8px 16px; }"
+            "QPushButton:hover { border-color: #555; }"
+        )
+        self.skip_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.skip_btn.clicked.connect(self.reject)
+        btn_row.addWidget(self.skip_btn)
+
+        layout.addLayout(btn_row)
+
+    def _copy_fingerprint(self) -> None:
+        clipboard = QApplication.clipboard()
+        if clipboard:
+            clipboard.setText(self._machine_fp)
+            self.status_label.setText("✅ Machine ID copied to clipboard.")
+            self.status_label.setStyleSheet("QLabel { color: #00d4aa; font-size: 12px; }")
+
+    def _on_activate(self) -> None:
+        key = self.key_edit.text().strip()
+        if not key:
+            self.status_label.setText("Please enter a license key.")
+            self.status_label.setStyleSheet("QLabel { color: #ff6b35; font-size: 12px; }")
+            return
+
+        # --- Lemon Squeezy key (UUID format) ---
+        if _is_lemon_key(key):
+            self._activate_lemon(key)
+        # --- Legacy FFX1 offline key ---
+        elif key.startswith("FFX1"):
+            self._activate_ffx1(key)
+        else:
+            self.status_label.setText("❌ Unrecognised key format.")
+            self.status_label.setStyleSheet("QLabel { color: #ff4444; font-size: 12px; }")
+
+    # -- Lemon activation --
+
+    def _activate_lemon(self, key: str) -> None:
+        self.status_label.setText("⏳ Contacting license server…")
+        self.status_label.setStyleSheet("QLabel { color: #b0b0c0; font-size: 12px; }")
+        QApplication.processEvents()
+
+        ok, reason, data = lemon_activate(key, self._instance_name)
+        if ok:
+            self.accepted_key = key
+            self.accepted_type = "lemon"
+            self.lemon_instance_id = data.get("instance", {}).get("id", "")
+            lk = data.get("license_key", {})
+            self.lemon_status = lk.get("status", "active")
+            self.lemon_customer_email = (
+                data.get("meta", {}).get("customer_email", "")
+            )
+            self.status_label.setText(f"✅ License activated!")
+            self.status_label.setStyleSheet("QLabel { color: #00d4aa; font-size: 12px; }")
+            self.accept()
+        else:
+            if reason.startswith("network_error:"):
+                self.status_label.setText(
+                    "❌ Could not reach the license server.\n"
+                    "Check your internet connection and try again."
+                )
+            else:
+                self.status_label.setText(f"❌ {reason}")
+            self.status_label.setStyleSheet("QLabel { color: #ff4444; font-size: 12px; }")
+
+    # -- FFX1 legacy activation --
+
+    def _activate_ffx1(self, key: str) -> None:
+        ok, reason, claims = verify_license(key, self._machine_fp)
+        if ok:
+            self.accepted_key = key
+            self.accepted_type = "ffx1"
+            self.status_label.setText(f"✅ {reason}")
+            self.status_label.setStyleSheet("QLabel { color: #00d4aa; font-size: 12px; }")
+            self.accept()
+        else:
+            self.status_label.setText(f"❌ {reason}")
+            self.status_label.setStyleSheet("QLabel { color: #ff4444; font-size: 12px; }")
+
+
+# ---------------------------------------------------------------------------
 # Main Window
 # ---------------------------------------------------------------------------
 
@@ -373,6 +601,10 @@ class MainWindow(QMainWindow):
         self._apply_theme()
         self._build_ui()
         self._license_checked = False
+        self._is_activated = False
+
+        # Check for stored license key
+        self._restore_license()
 
     # ------------------------------------------------------------------
     # Theme
@@ -820,6 +1052,26 @@ class MainWindow(QMainWindow):
 
         root.addWidget(adv)
 
+        # --- License status row ---
+        license_row = QHBoxLayout()
+        self.license_status_label = QLabel("License: Not Activated")
+        self.license_status_label.setStyleSheet(
+            "QLabel { color: #ff6b35; font-weight: 600; font-size: 12px; }"
+        )
+        license_row.addWidget(self.license_status_label, stretch=1)
+
+        self.license_btn = QPushButton("🔑 License")
+        self.license_btn.setStyleSheet(
+            "QPushButton { background-color: #2a1a2e; color: #00d4aa; "
+            "font-weight: 600; border: 1px solid #00d4aa; border-radius: 6px; "
+            "padding: 4px 12px; font-size: 12px; }"
+            "QPushButton:hover { background-color: #3a223e; }"
+        )
+        self.license_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.license_btn.clicked.connect(self._show_activation)
+        license_row.addWidget(self.license_btn)
+        root.addLayout(license_row)
+
         # --- Generate button ---
         self.generate_btn = QPushButton("⚡  Generate Resume File")
         self.generate_btn.setObjectName("generateBtn")
@@ -896,6 +1148,9 @@ class MainWindow(QMainWindow):
         if not self._license_checked:
             self._license_checked = True
             self._ensure_license_accepted()
+            # Show activation dialog if EULA was accepted and not yet activated
+            if self.isVisible() and not self._is_activated:
+                self._show_activation()
 
     def _gather_params(self) -> dict:
         """Collect current UI state into a kwargs dict for the controller."""
@@ -992,10 +1247,150 @@ class MainWindow(QMainWindow):
         dialog.exec()
 
     # ------------------------------------------------------------------
+    # License / Activation
+    # ------------------------------------------------------------------
+
+    def _restore_license(self) -> None:
+        """Check QSettings for a previously stored license key."""
+        settings = QSettings("FleX3Designs", "FailFixer")
+        stored_key = settings.value("license/key", "", type=str)
+        license_type = settings.value("license/type", "ffx1", type=str)
+
+        if not stored_key:
+            return
+
+        if license_type == "lemon":
+            self._restore_lemon_license(settings, stored_key)
+        else:
+            # Legacy FFX1
+            fp = machine_fingerprint()
+            ok, reason, claims = verify_license(stored_key, fp)
+            if ok:
+                self._set_activated(True, claims.get("licensee", ""))
+            else:
+                self._set_activated(False)
+
+    def _restore_lemon_license(self, settings: QSettings, stored_key: str) -> None:
+        """Validate a stored Lemon Squeezy key at startup."""
+        instance_id = settings.value("license/instance_id", "", type=str)
+        last_validated = settings.value("license/last_validated_at", "", type=str)
+
+        # Attempt online validation
+        ok, reason, data = lemon_validate(
+            stored_key, instance_id or None, timeout=LEMON_TIMEOUT_SEC
+        )
+
+        if ok:
+            # Online validation passed — update timestamp
+            now_iso = datetime.now(timezone.utc).isoformat()
+            settings.setValue("license/last_validated_at", now_iso)
+            lk = data.get("license_key", {})
+            settings.setValue("license/status", lk.get("status", "active"))
+            settings.sync()
+
+            email = settings.value("license/customer_email", "", type=str)
+            self._set_activated(True, email or "Lemon License")
+            return
+
+        # Distinguish hard rejection vs network error
+        if reason.startswith("network_error:"):
+            # Network issue — apply grace period
+            if last_validated:
+                try:
+                    last_dt = datetime.fromisoformat(last_validated)
+                    grace_end = last_dt + timedelta(days=LEMON_GRACE_DAYS)
+                    if datetime.now(timezone.utc) < grace_end:
+                        email = settings.value("license/customer_email", "", type=str)
+                        self._set_activated(True, email or "Lemon (offline grace)")
+                        return
+                except (ValueError, TypeError):
+                    pass
+            # Grace expired or never validated
+            self._set_activated(False)
+        else:
+            # Invalid / expired / disabled — hard rejection
+            settings.setValue("license/status", "invalid")
+            settings.sync()
+            self._set_activated(False)
+
+    def _set_activated(self, activated: bool, licensee: str = "") -> None:
+        """Update UI state based on activation status."""
+        self._is_activated = activated
+        if activated:
+            display = "License: Activated"
+            if licensee:
+                display += f" ({licensee})"
+            self.license_status_label.setText(display)
+            self.license_status_label.setStyleSheet(
+                "QLabel { color: #00d4aa; font-weight: 600; font-size: 12px; }"
+            )
+            self.generate_btn.setEnabled(True)
+            self.generate_btn.setToolTip("")
+        else:
+            self.license_status_label.setText("License: Not Activated")
+            self.license_status_label.setStyleSheet(
+                "QLabel { color: #ff6b35; font-weight: 600; font-size: 12px; }"
+            )
+            self.generate_btn.setEnabled(False)
+            self.generate_btn.setToolTip(
+                "A valid license key is required to generate resume files."
+            )
+
+    def _show_activation(self) -> None:
+        """Show the activation dialog and process the result."""
+        dialog = ActivationDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted or not dialog.accepted_key:
+            return  # rejected/skipped — keep current state
+
+        settings = QSettings("FleX3Designs", "FailFixer")
+
+        if dialog.accepted_type == "lemon":
+            # Store Lemon license data
+            settings.setValue("license/type", "lemon")
+            settings.setValue("license/key", dialog.accepted_key)
+            settings.setValue("license/instance_id", dialog.lemon_instance_id or "")
+            settings.setValue("license/status", dialog.lemon_status or "active")
+            if dialog.lemon_customer_email:
+                settings.setValue("license/customer_email", dialog.lemon_customer_email)
+            settings.setValue(
+                "license/last_validated_at",
+                datetime.now(timezone.utc).isoformat(),
+            )
+            settings.sync()
+            display = dialog.lemon_customer_email or "Lemon License"
+            self._set_activated(True, display)
+            self.statusBar().showMessage("License activated via Lemon Squeezy")
+            self._log("🔑 Lemon Squeezy license activated.")
+
+        elif dialog.accepted_type == "ffx1":
+            # Store legacy FFX1 key
+            settings.setValue("license/type", "ffx1")
+            settings.setValue("license/key", dialog.accepted_key)
+            settings.sync()
+            fp = machine_fingerprint()
+            ok, reason, claims = verify_license(dialog.accepted_key, fp)
+            if ok:
+                self._set_activated(True, claims.get("licensee", ""))
+                self.statusBar().showMessage("License activated successfully")
+                self._log("🔑 License activated (FFX1).")
+            else:
+                self._set_activated(False)
+
+    # ------------------------------------------------------------------
     # Generate handler
     # ------------------------------------------------------------------
 
     def _on_generate(self) -> None:
+        # 0. License check
+        if not self._is_activated:
+            QMessageBox.warning(
+                self,
+                "License Required",
+                "A valid license key is required to generate resume files.\n\n"
+                "Click the 🔑 License button to activate.",
+            )
+            return
+
         # 1. Validate inputs
         err = self._validate_inputs()
         if err:

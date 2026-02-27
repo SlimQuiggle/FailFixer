@@ -7,6 +7,7 @@ defaults if no profile file is found.
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -34,6 +35,27 @@ class PrinterProfile:
         )
 
 
+def _default_profiles_dir() -> Path:
+    """Resolve profiles dir for source and PyInstaller runtimes."""
+    candidates: list[Path] = []
+
+    # PyInstaller onefile extraction root
+    if hasattr(sys, "_MEIPASS"):
+        root = Path(getattr(sys, "_MEIPASS"))
+        candidates.extend([
+            root / "profiles",
+            root / "failfixer" / "profiles",
+        ])
+
+    # Source fallback
+    candidates.append(Path(__file__).resolve().parent.parent / "profiles")
+
+    for p in candidates:
+        if p.is_dir():
+            return p
+    return candidates[0]
+
+
 class ProfileLoader:
     """Loads *PrinterProfile* from JSON files."""
 
@@ -44,8 +66,7 @@ class ProfileLoader:
         if profiles_dir is not None:
             self._dir = Path(profiles_dir)
         else:
-            # Resolve relative to this file's package
-            self._dir = Path(__file__).resolve().parent.parent / "profiles"
+            self._dir = _default_profiles_dir()
 
     @property
     def profiles_dir(self) -> Path:
