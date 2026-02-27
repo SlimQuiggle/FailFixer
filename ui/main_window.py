@@ -168,6 +168,10 @@ class CollapsibleGroupBox(QGroupBox):
                     w = layout.itemAt(j).widget() if layout.itemAt(j) else None
                     if w:
                         w.setVisible(checked)
+        # Auto-resize the parent window to fit
+        window = self.window()
+        if window:
+            window.adjustSize()
 
     def showEvent(self, event) -> None:  # type: ignore[override]
         super().showEvent(event)
@@ -594,8 +598,14 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _build_ui(self) -> None:
+        # Wrap everything in a scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; background: #1a1a2e; }")
+        self.setCentralWidget(scroll)
+
         central = QWidget()
-        self.setCentralWidget(central)
+        scroll.setWidget(central)
         root = QVBoxLayout(central)
         root.setSpacing(10)
         root.setContentsMargins(16, 12, 16, 12)
