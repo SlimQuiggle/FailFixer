@@ -433,10 +433,11 @@ class TestResumeGeneratorHeader:
         match = mapper.by_layer_number(1)
         lines = gen.generate(parsed_gcode, match, resume_config)
         for line in lines:
-            stripped = line.strip().upper()
-            if stripped.startswith("G28"):
+            # Check command portion only (before any comment)
+            cmd = line.split(";")[0].strip().upper()
+            if cmd.startswith("G28"):
                 # Only G28 X Y is allowed, not G28 Z
-                assert "Z" not in stripped, f"G28 Z found in output: {line}"
+                assert "Z" not in cmd, f"G28 Z found in output: {line}"
 
 
 class TestResumeGeneratorMovement:
@@ -863,9 +864,9 @@ class TestControllerRun:
         result = ctrl.run(request)
         content = result.output_path.read_text(encoding="utf-8")
         for line in content.splitlines():
-            stripped = line.strip().upper()
-            if stripped.startswith("G28"):
-                assert "Z" not in stripped
+            cmd = line.split(";")[0].strip().upper()
+            if cmd.startswith("G28"):
+                assert "Z" not in cmd, f"G28 Z found in output: {line}"
 
     def test_run_from_plate_mode_rebases_to_z_zero(self, tmp_path):
         gcode_path = _write_gcode(tmp_path, GCODE_LAYER_COMMENT)

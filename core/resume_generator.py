@@ -72,6 +72,7 @@ class ResumeGenerator:
             self._build_in_air_header(
                 original_filename=original_filename,
                 config=config,
+                parsed=parsed,
             )
         )
         if metadata_lines:
@@ -90,7 +91,12 @@ class ResumeGenerator:
         lines = self.generate(parsed, match, config)
         return "\n".join(lines) + "\n"
 
-    def _build_in_air_header(self, original_filename: str, config: ResumeConfig) -> list[str]:
+    def _build_in_air_header(
+        self,
+        original_filename: str,
+        config: ResumeConfig,
+        parsed: ParsedGCode | None = None,
+    ) -> list[str]:
         effective_z = config.resume_z + config.z_offset_mm
         clearance_z = max(config.safe_lift_mm, effective_z + 5.0)
 
@@ -106,22 +112,34 @@ class ResumeGenerator:
         out.append("; SAFETY: This file assumes the nozzle is at or near")
         out.append("; the top of the failed print when started.")
         out.append("")
-        out.append("; --- Units & Mode ---")
-        out.append("G21                        ; Millimeters")
-        out.append("G90                        ; Absolute positioning")
-        out.append("M82                        ; Absolute extrusion")
-        out.append("")
-        out.append("; --- Heat Up ---")
-        out.append(f"M140 S{_fmt_temp(config.bed_temp)}           ; Start heating bed")
-        out.append(f"M104 S{_fmt_temp(config.nozzle_temp)}        ; Start heating nozzle")
-        out.append(f"M190 S{_fmt_temp(config.bed_temp)}           ; Wait for bed temp")
-        out.append(f"M109 S{_fmt_temp(config.nozzle_temp)}        ; Wait for nozzle temp")
-        out.append("")
-        out.append("; --- Safe Homing (XY only) ---")
-        out.append("; CRITICAL: Do NOT home Z — nozzle would crash into partial print")
-        out.append("G28 X Y                    ; Home X and Y at corner")
-        out.append("")
-        out.append("; --- Set Z Position ---")
+
+        # --- Replay original preamble (preserves firmware-specific init) ---
+        preamble = getattr(parsed, "preamble_lines", []) if parsed else []
+        if preamble:
+            out.append("; --- Original Preamble (from source file) ---")
+            out.extend(self._filter_preamble_for_in_air(preamble))
+            out.append("; --- End Original Preamble ---")
+            out.append("")
+        else:
+            # Fallback: generic header when no preamble available
+            out.append("; --- Units & Mode ---")
+            out.append("G21                        ; Millimeters")
+            out.append("G90                        ; Absolute positioning")
+            out.append("M82                        ; Absolute extrusion")
+            out.append("")
+            out.append("; --- Heat Up ---")
+            out.append(f"M140 S{_fmt_temp(config.bed_temp)}           ; Start heating bed")
+            out.append(f"M104 S{_fmt_temp(config.nozzle_temp)}        ; Start heating nozzle")
+            out.append(f"M190 S{_fmt_temp(config.bed_temp)}           ; Wait for bed temp")
+            out.append(f"M109 S{_fmt_temp(config.nozzle_temp)}        ; Wait for nozzle temp")
+            out.append("")
+            out.append("; --- Safe Homing (XY only) ---")
+            out.append("; CRITICAL: Do NOT home Z — nozzle would crash into partial print")
+            out.append("G28 X Y                    ; Home X and Y at corner")
+            out.append("")
+
+        # --- FailFixer in-air safety sequence ---
+        out.append("; --- FailFixer In-Air Safety ---")
         out.append("; Tell firmware where Z is based on the failed layer height")
         out.append("; The nozzle should physically be at/near this height")
         out.append(f"G92 Z{effective_z:.3f}         ; Set current Z = resume height")
@@ -142,6 +160,70 @@ class ResumeGenerator:
         out.append("G92 E0                     ; Reset extruder again")
         out.append("")
         out.append(f"; === Resume Print from Layer {config.resume_layer} ===")
+        return out
+
+    @staticmethod
+    def _filter_preamble_for_in_air(preamble: list[str]) -> list[str]:
+        """Replay the original preamble but neutralize commands that would
+        be dangerous in in-air mode (G28 Z, G29, purge lines at Z0, etc.).
+        Preserves: comments, metadata, thumbnails, firmware init commands
+        (G9111, PRINT_START, etc.), temp commands, tool selects, fan settings,
+        M-codes for accel/jerk, EXCLUDE_OBJECT_DEFINE, etc.
+        """
+        out: list[str] = []
+        skip_purge = False
+
+        for raw_line in preamble:
+            stripped = raw_line.strip()
+
+            # Always keep comments / blank lines
+            if not stripped or stripped.startswith(";"):
+                # Detect purge section start
+                lower = stripped.lower()
+                if any(tag in lower for tag in (
+                    "; purge line", "; purge", ";purge line",
+                    "; after_layer_change",
+                )):
+                    skip_purge = True
+                    out.append(f"; [FailFixer] Skipped: {stripped}")
+                    continue
+                if skip_purge:
+                    out.append(f"; [FailFixer] Skipped: {stripped}")
+                    continue
+                out.append(raw_line)
+                continue
+
+            cmd = stripped.split(";", 1)[0].strip()
+            cmd_upper = cmd.upper()
+
+            # If we're in purge-skip mode, skip all commands
+            if skip_purge:
+                out.append(f"; [FailFixer] Skipped purge: {stripped}")
+                continue
+
+            # Dangerous: G28 with Z (full home or Z-only home)
+            # G28 with no args = full home = includes Z
+            if cmd_upper.startswith("G28"):
+                args = cmd_upper[3:].strip()
+                if not args or "Z" in args:
+                    out.append(f"; [FailFixer] Neutralized: {stripped}")
+                    # Replace full G28 with XY-only home
+                    if not args:
+                        out.append("G28 X Y                    ; FailFixer: home XY only (safe for in-air)")
+                    continue
+                else:
+                    # G28 X, G28 X Y etc — safe
+                    out.append(raw_line)
+                    continue
+
+            # Dangerous: G29 (bed probing — nozzle goes down)
+            if cmd_upper.startswith("G29"):
+                out.append(f"; [FailFixer] Neutralized: {stripped}")
+                continue
+
+            # Keep everything else (firmware init, temp, tool, accel, etc.)
+            out.append(raw_line)
+
         return out
 
     def _build_from_plate_header(

@@ -101,6 +101,7 @@ class ParsedGCode:
     header_end_line: int = 0                # line index where header ends
     detection_method: str = "none"          # "comment_layer", "layer_change", "z_move"
     source_filename: str = "unknown"        # original filename (basename)
+    preamble_lines: list[str] = field(default_factory=list)  # original pre-layer lines
 
 
 # ---------------------------------------------------------------------------
@@ -285,6 +286,8 @@ class GCodeParser:
 
         # --- Build layer list from best available source ---
         result = ParsedGCode(lines=lines, state=state, header_end_line=header_end)
+        # Capture preamble: everything before the first layer starts
+        # Will be populated after layers are built
 
         if layer_markers:
             result.detection_method = "comment_layer"
@@ -299,6 +302,11 @@ class GCodeParser:
             result.detection_method = "z_move"
             result.layers = self._layers_from_z_changes(z_changes, len(lines))
         # else: no layers detected (tiny / empty file)
+
+        # Capture preamble (everything before first layer)
+        if result.layers:
+            first_layer_line = result.layers[0].start_line
+            result.preamble_lines = lines[:first_layer_line]
 
         return result
 
