@@ -1014,29 +1014,30 @@ class MainWindow(QMainWindow):
     def _to_light_css(self, css: str) -> str:
         """Quick color remap for a usable light mode."""
         replacements = [
-            ("#1a1a2e", "#f6f8fb"),
-            ("#111128", "#ffffff"),
+            # Windows-like neutral light palette
+            ("#1a1a2e", "#f3f3f3"),
+            ("#111128", "#ececec"),
             ("#16213e", "#ffffff"),
-            ("#0f3460", "#dbe7f5"),
-            ("#2a2a4a", "#cfd8e3"),
-            ("#333355", "#b8c4d1"),
-            ("#e0e0e0", "#1e2a36"),
-            ("#c8c8dc", "#2a3642"),
-            ("#b0b0c0", "#3d4b59"),
-            ("#8a8aa0", "#5a6b7d"),
-            ("#555570", "#7b8da1"),
-            ("#00d4aa", "#0f9d7a"),
-            ("#1a4a7a", "#c7dcf3"),
-            ("#0a2540", "#b7d0ea"),
-            ("#3d1a00", "#fff1e8"),
-            ("#ff6b35", "#c65a2a"),
-            ("#ff8855", "#d56e40"),
-            ("#ffaa77", "#de8a62"),
-            ("#e05520", "#b84a1d"),
-            ("#2a1a2e", "#f2e9f5"),
-            ("#132a3a", "#e8f6ff"),
-            ("#5cd6ff", "#2f83a2"),
-            ("#ffffff", "#0f1720"),
+            ("#0f3460", "#dfe7f1"),
+            ("#2a2a4a", "#c9d1db"),
+            ("#333355", "#aeb8c4"),
+            ("#e0e0e0", "#1f2933"),
+            ("#c8c8dc", "#2f3b45"),
+            ("#b0b0c0", "#465665"),
+            ("#8a8aa0", "#5f7284"),
+            ("#555570", "#7b8fa3"),
+            ("#00d4aa", "#0f7cc0"),
+            ("#1a4a7a", "#c9d9ea"),
+            ("#0a2540", "#b8cbe0"),
+            ("#3d1a00", "#fff4e8"),
+            ("#ff6b35", "#b85a2e"),
+            ("#ff8855", "#c96d44"),
+            ("#ffaa77", "#d98a69"),
+            ("#e05520", "#a84921"),
+            ("#2a1a2e", "#eeeaf2"),
+            ("#132a3a", "#e8f3fb"),
+            ("#5cd6ff", "#2d86aa"),
+            ("#ffffff", "#111b24"),
         ]
         for old, new in replacements:
             css = css.replace(old, new)
@@ -1089,6 +1090,21 @@ class MainWindow(QMainWindow):
         header_subtitle.setObjectName("headerSubtitle")
         header_text_col.addWidget(header_subtitle)
         header_row.addLayout(header_text_col, stretch=1)
+
+        # Theme control at top-right
+        theme_col = QVBoxLayout()
+        theme_col.setSpacing(2)
+        theme_col.setContentsMargins(0, 0, 0, 0)
+        theme_label = QLabel("Theme")
+        theme_label.setProperty("class", "section-title")
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItem("Dark", "dark")
+        self.theme_combo.addItem("Light", "light")
+        self.theme_combo.setCurrentIndex(0)
+        self.theme_combo.currentIndexChanged.connect(self._on_theme_changed)
+        theme_col.addWidget(theme_label, alignment=Qt.AlignmentFlag.AlignRight)
+        theme_col.addWidget(self.theme_combo)
+        header_row.addLayout(theme_col)
 
         root.addLayout(header_row)
 
@@ -1667,5 +1683,6 @@ class MainWindow(QMainWindow):
             "Success",
             f"Resume G-code saved to:\n{result.output_path}",
         )
+
 
 
