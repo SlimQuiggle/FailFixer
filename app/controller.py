@@ -63,12 +63,18 @@ class Controller:
         """Execute the full pipeline and return a *ResumeResult*."""
         warnings: list[str] = []
 
-        # 1. Load profile
-        profile = self._profile_loader.load(request.profile_name)
-
-        # 2. Parse
+        # 1. Parse
         input_path = Path(request.input_path)
         parsed = self._parser.parse_file(input_path)
+
+        # 2. Load profile (auto-detect when requested)
+        requested_profile = request.profile_name
+        if requested_profile in (None, "auto", "auto.json"):
+            detected = self._detect_profile_name(parsed)
+            requested_profile = f"{detected}.json"
+            warnings.append(f"Auto profile selected: {detected}")
+
+        profile = self._profile_loader.load(requested_profile)
 
         if not parsed.layers:
             raise RuntimeError(
@@ -165,6 +171,22 @@ class Controller:
         return mapper.by_z_height(selector)
 
     @staticmethod
+    def _detect_profile_name(parsed: ParsedGCode) -> str:
+        """Best-effort firmware profile detection from source G-code."""
+        sample = "\n".join(parsed.lines[:1200]).upper()
+
+        # Anycubic / Klipper-style startup macros
+        if "G9111" in sample or "SET_VELOCITY_LIMIT" in sample or "PRINT_START" in sample:
+            return "klipper"
+
+        # RepRapFirmware signatures
+        if "M572" in sample or "M671" in sample or "M669" in sample:
+            return "reprapfirmware"
+
+        # Default catch-all
+        return "default_marlin"
+
+    @staticmethod
     def _build_output_path(
         input_path: Path,
         layer_number: int,
@@ -215,7 +237,7 @@ class FailFixerController:
         z_offset: float = 0.0,
         park_x: Optional[float] = None,
         park_y: Optional[float] = None,
-        profile: str = "default_marlin",
+        profile: str = "auto",
         output_path: Optional[str] = None,
         resume_mode: Literal["in_air", "from_plate"] = "in_air",
     ) -> ProcessResult:
@@ -233,8 +255,11 @@ class FailFixerController:
         else:
             selector = float(z_height)  # type: ignore[arg-type]
 
-        # Ensure profile has .json extension
-        profile_name = profile if profile.endswith(".json") else f"{profile}.json"
+        # Ensure profile has .json extension (except auto-detect)
+        if profile in ("auto", "auto.json"):
+            profile_name = "auto"
+        else:
+            profile_name = profile if profile.endswith(".json") else f"{profile}.json"
 
         # Build output_dir from output_path if provided
         output_dir: Optional[str] = None

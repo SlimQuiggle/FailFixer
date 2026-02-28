@@ -1,4 +1,4 @@
-"""FailFixer – Main application window (PyQt6)."""
+"""FailFixer - Main application window (PyQt6)."""
 
 from __future__ import annotations
 
@@ -107,9 +107,11 @@ def _load_profile_names() -> list[str]:
     """Scan profiles/ for .json files and return their stem names."""
     d = _profiles_dir()
     if not d.is_dir():
-        return ["default_marlin"]
+        return ["auto", "default_marlin"]
     names = sorted(p.stem for p in d.glob("*.json"))
-    return names if names else ["default_marlin"]
+    if "auto" not in names:
+        names.insert(0, "auto")
+    return names if names else ["auto", "default_marlin"]
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +269,7 @@ Always supervise first-layer/initial movement when testing resume files.</p>
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("FailFixer — License Agreement")
+        self.setWindowTitle("FailFixer - License Agreement")
         self.setMinimumSize(440, 380)
         self.resize(480, 420)
 
@@ -309,7 +311,7 @@ class FAQDialog(QDialog):
 <h3 style="color:#ff6b35;">⚠️ Do I need to leave my print on the bed?</h3>
 <p><b>YES!</b> The partial print must remain exactly where it is on the build plate.
 Do not move it, bump the bed, or adjust anything. FailFixer generates G-code that
-continues from where the print failed — if the object has shifted even slightly,
+continues from where the print failed - if the object has shifted even slightly,
 the layers won't align and the resume will fail.</p>
 
 <h3 style="color:#00d4aa;">How do I find the layer number where my print failed?</h3>
@@ -321,7 +323,7 @@ of layer number.</p>
 <h3 style="color:#00d4aa;">What if I don't know the exact layer?</h3>
 <p>Measure the height of your failed print with calipers. Enter that measurement
 using the "Z Height (mm)" option. FailFixer will find the closest layer. It's better
-to go <b>one layer lower</b> than too high — overlapping a layer is much better than
+to go <b>one layer lower</b> than too high - overlapping a layer is much better than
 leaving a gap.</p>
 
 <h3 style="color:#00d4aa;">Will the nozzle crash into my print when it homes?</h3>
@@ -347,12 +349,12 @@ below. You can minimize this by:</p>
 <h3 style="color:#00d4aa;">Which printers / firmware does this work with?</h3>
 <p>FailFixer supports:</p>
 <ul>
-<li><b>Marlin</b> — Ender 3, CR-10, Prusa MK3/MK4, most common printers</li>
-<li><b>Klipper</b> — Voron, custom builds, Sonic Pad setups</li>
-<li><b>RepRapFirmware</b> — Duet boards</li>
+<li><b>Marlin</b> - Ender 3, CR-10, Prusa MK3/MK4, most common printers</li>
+<li><b>Klipper</b> - Voron, custom builds, Sonic Pad setups</li>
+<li><b>RepRapFirmware</b> - Duet boards</li>
 </ul>
-<p>Select your firmware profile in Advanced Options. When in doubt, use "default_marlin"
-— it uses standard G-code that works on most printers.</p>
+<p>Use "Auto-detect (recommended)" for most printers. If needed, you can manually pick
+Marlin, Klipper, or RepRapFirmware.</p>
 
 <h3 style="color:#00d4aa;">Can I resume a print that failed hours/days ago?</h3>
 <p>Yes, as long as the print hasn't been moved or removed from the bed. The printer
@@ -375,7 +377,7 @@ to verify or adjust settings before printing.</p>
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("FailFixer — FAQ")
+        self.setWindowTitle("FailFixer - FAQ")
         self.setMinimumSize(500, 500)
         self.resize(540, 600)
 
@@ -419,7 +421,7 @@ class ActivationDialog(QDialog):
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("FailFixer — Activation")
+        self.setWindowTitle("FailFixer - Activation")
         self.setMinimumSize(460, 300)
         self.resize(500, 320)
 
@@ -592,7 +594,7 @@ class BugReportDialog(QDialog):
 
     def __init__(self, parent=None, firmware: str = "", machine_id: str = "") -> None:
         super().__init__(parent)
-        self.setWindowTitle("FailFixer — Report a Bug")
+        self.setWindowTitle("FailFixer - Report a Bug")
         self.setMinimumSize(520, 520)
         self.resize(560, 620)
 
@@ -695,7 +697,7 @@ class BugReportDialog(QDialog):
 class MainWindow(QMainWindow):
     """Primary FailFixer UI."""
 
-    WINDOW_TITLE = "FailFixer BETA — Resume Failed Print"
+    WINDOW_TITLE = "FailFixer BETA - Resume Failed Print"
 
     def __init__(self) -> None:
         super().__init__()
@@ -1123,15 +1125,16 @@ class MainWindow(QMainWindow):
         profiles = _load_profile_names()
         # Show friendly names
         friendly_names = {
-            "default_marlin": "Marlin (default)",
+            "auto": "Auto-detect (recommended)",
+            "default_marlin": "Marlin",
             "klipper": "Klipper",
             "reprapfirmware": "RepRapFirmware (Duet)",
         }
         for p in profiles:
             self.profile_combo.addItem(friendly_names.get(p, p), p)
-        # Default to Marlin
-        marlin_idx = next((i for i, p in enumerate(profiles) if "marlin" in p), 0)
-        self.profile_combo.setCurrentIndex(marlin_idx)
+        # Default to auto-detect
+        auto_idx = next((i for i, p in enumerate(profiles) if p == "auto"), 0)
+        self.profile_combo.setCurrentIndex(auto_idx)
         fw_row.addWidget(self.profile_combo, stretch=1)
         root.addLayout(fw_row)
 
@@ -1227,7 +1230,7 @@ class MainWindow(QMainWindow):
         # --- FAQ + Legal buttons ---
         info_buttons = QHBoxLayout()
 
-        faq_btn = QPushButton("❓  FAQ — Common Questions")
+        faq_btn = QPushButton("❓  FAQ - Common Questions")
         faq_btn.setStyleSheet(
             "QPushButton { background-color: #0f3460; color: #00d4aa; "
             "font-weight: 600; border: 1px solid #00d4aa; border-radius: 6px; "
@@ -1301,7 +1304,7 @@ class MainWindow(QMainWindow):
         else:
             params["z_height"] = self.z_height_input.value()
 
-        # Park coordinates — only include if advanced section is expanded
+        # Park coordinates - only include if advanced section is expanded
         # and values are non-zero (i.e., user intentionally set them)
         if self.park_x_spin.value() > 0:
             params["park_x"] = self.park_x_spin.value()
@@ -1426,7 +1429,7 @@ class MainWindow(QMainWindow):
         )
 
         if ok:
-            # Online validation passed — update timestamp
+            # Online validation passed - update timestamp
             now_iso = datetime.now(timezone.utc).isoformat()
             settings.setValue("license/last_validated_at", now_iso)
             lk = data.get("license_key", {})
@@ -1439,7 +1442,7 @@ class MainWindow(QMainWindow):
 
         # Distinguish hard rejection vs network error
         if reason.startswith("network_error:"):
-            # Network issue — apply grace period
+            # Network issue - apply grace period
             if last_validated:
                 try:
                     last_dt = datetime.fromisoformat(last_validated)
@@ -1453,7 +1456,7 @@ class MainWindow(QMainWindow):
             # Grace expired or never validated
             self._set_activated(False)
         else:
-            # Invalid / expired / disabled — hard rejection
+            # Invalid / expired / disabled - hard rejection
             settings.setValue("license/status", "invalid")
             settings.sync()
             self._set_activated(False)
@@ -1485,7 +1488,7 @@ class MainWindow(QMainWindow):
         """Show the activation dialog and process the result."""
         dialog = ActivationDialog(self)
         if dialog.exec() != QDialog.DialogCode.Accepted or not dialog.accepted_key:
-            return  # rejected/skipped — keep current state
+            return  # rejected/skipped - keep current state
 
         settings = QSettings("FleX3Designs", "FailFixer")
 
@@ -1604,7 +1607,7 @@ class MainWindow(QMainWindow):
             for w in result.warnings:
                 self._log(f"   ⚠️  {w}")
 
-        self.statusBar().showMessage("Done — file saved")
+        self.statusBar().showMessage("Done - file saved")
         QMessageBox.information(
             self,
             "Success",
