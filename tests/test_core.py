@@ -201,6 +201,13 @@ class TestGCodeParserState:
         assert result.state.positioning == "G90"
         assert result.state.extruder_mode == "M82"
 
+    def test_temp_detection_with_r_parameter(self):
+        gcode = "M140 R60\nM190 R60\nM104 R205\nM109 R205\nG1 X1 Y1 E0.1\n"
+        parser = GCodeParser()
+        result = parser.parse_string(gcode)
+        assert result.state.bed_temp == 60.0
+        assert result.state.nozzle_temp == 205.0
+
     def test_imperial_units(self):
         gcode = "G20\nG91\nM83\nM140 S50\nM104 S180\nG1 Z0.3 E0.1\n"
         parser = GCodeParser()
@@ -547,6 +554,23 @@ class TestValidatorMissingTemps:
         result = v.validate(lines)
         codes = [e.code for e in result.errors]
         assert "MISSING_NOZZLE_TEMP" in codes
+
+    def test_temp_detection_with_r_parameter(self):
+        lines = [
+            "; --- FailFixer Resume Header ---",
+            "M140 R60",
+            "M190 R60",
+            "M104 R205",
+            "M109 R205",
+            "G1 Z10 F3000",
+            "G1 X10 Y10 E1.0",
+            "; --- End Resume Header ---",
+        ]
+        v = Validator()
+        result = v.validate(lines)
+        codes = [e.code for e in result.errors]
+        assert "MISSING_BED_TEMP" not in codes
+        assert "MISSING_NOZZLE_TEMP" not in codes
 
     def test_missing_both_temps(self):
         lines = [

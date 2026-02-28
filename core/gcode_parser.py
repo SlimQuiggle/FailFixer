@@ -29,10 +29,10 @@ _RE_Z_MOVE = re.compile(
     r"^G[01]\s.*Z\s*([+-]?\d+\.?\d*)", re.IGNORECASE
 )
 _RE_TEMP_BED = re.compile(
-    r"^M(140|190)\s.*S\s*(\d+\.?\d*)", re.IGNORECASE
+    r"^M(140|190)\s.*[SR]\s*(\d+\.?\d*)", re.IGNORECASE
 )
 _RE_TEMP_NOZZLE = re.compile(
-    r"^M(104|109)\s.*S\s*(\d+\.?\d*)", re.IGNORECASE
+    r"^M(104|109)\s.*[SR]\s*(\d+\.?\d*)", re.IGNORECASE
 )
 _RE_UNIT = re.compile(r"^G(20|21)\b", re.IGNORECASE)
 _RE_POS_MODE = re.compile(r"^G(90|91)\b", re.IGNORECASE)

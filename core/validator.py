@@ -65,7 +65,7 @@ _RE_M_COMMAND = re.compile(r"^M(\d+)", re.IGNORECASE)
 _RE_Z_PARAM = re.compile(r"Z\s*([+-]?\d+\.?\d*)", re.IGNORECASE)
 _RE_X_PARAM = re.compile(r"X\s*([+-]?\d+\.?\d*)", re.IGNORECASE)
 _RE_Y_PARAM = re.compile(r"Y\s*([+-]?\d+\.?\d*)", re.IGNORECASE)
-_RE_S_PARAM = re.compile(r"S\s*(\d+\.?\d*)", re.IGNORECASE)
+_RE_TEMP_PARAM = re.compile(r"[SR]\s*(\d+\.?\d*)", re.IGNORECASE)
 
 # Known G/M codes we consider valid
 _VALID_G = {0, 1, 4, 10, 11, 20, 21, 28, 29, 80, 90, 91, 92}
@@ -155,12 +155,12 @@ class Validator:
 
             # --- Temperature detection ---
             if cmd_upper.startswith(("M140", "M190")):
-                s = _RE_S_PARAM.search(cmd_upper)
-                if s and float(s.group(1)) > 0:
+                t = _RE_TEMP_PARAM.search(cmd_upper)
+                if t and float(t.group(1)) > 0:
                     has_bed_temp = True
             if cmd_upper.startswith(("M104", "M109")):
-                s = _RE_S_PARAM.search(cmd_upper)
-                if s and float(s.group(1)) > 0:
+                t = _RE_TEMP_PARAM.search(cmd_upper)
+                if t and float(t.group(1)) > 0:
                     has_nozzle_temp = True
 
             # --- Movement safety ---
