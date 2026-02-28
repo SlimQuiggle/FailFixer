@@ -163,6 +163,21 @@ class Validator:
                 if t and float(t.group(1)) > 0:
                     has_nozzle_temp = True
 
+            # Firmware-specific init commands that handle temps internally
+            # Anycubic G9111, Klipper PRINT_START/START_PRINT macros, etc.
+            if cmd_upper.startswith("G9111"):
+                import re as _re
+                if _re.search(r"\bEXTRUDERTEMP\s*=\s*\d", cmd_upper, _re.IGNORECASE):
+                    has_nozzle_temp = True
+                if _re.search(r"\bBEDTEMP\s*=\s*\d", cmd_upper, _re.IGNORECASE):
+                    has_bed_temp = True
+            if cmd_upper.startswith(("PRINT_START", "START_PRINT", "_START_PRINT")):
+                import re as _re
+                if _re.search(r"\b(?:EXTRUDER|HOTEND|NOZZLE|EXTRUDER_TEMP|HOTEND_TEMP|NOZZLE_TEMP)\s*=\s*\d", cmd_upper, _re.IGNORECASE):
+                    has_nozzle_temp = True
+                if _re.search(r"\b(?:BED|BED_TEMP|BED_TEMPERATURE)\s*=\s*\d", cmd_upper, _re.IGNORECASE):
+                    has_bed_temp = True
+
             # --- Movement safety ---
             z_match = _RE_Z_PARAM.search(cmd_upper)
             x_match = _RE_X_PARAM.search(cmd_upper)

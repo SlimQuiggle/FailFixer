@@ -44,11 +44,11 @@ _RE_KLIPPER_TEMP_WAIT = re.compile(
 )
 # Klipper START_PRINT / PRINT_START macros that pass temps as params
 _RE_KLIPPER_MACRO_EXTRUDER = re.compile(
-    r"\b(?:EXTRUDER_TEMP|EXTRUDER|HOTEND|NOZZLE|NOZZLE_TEMP|HOTEND_TEMP)\s*=\s*([+-]?\d+\.?\d*)",
+    r"\b(?:EXTRUDER_TEMP|EXTRUDER|HOTEND|NOZZLE|NOZZLE_TEMP|HOTEND_TEMP|EXTRUDERTEMP)\s*=\s*([+-]?\d+\.?\d*)",
     re.IGNORECASE,
 )
 _RE_KLIPPER_MACRO_BED = re.compile(
-    r"\b(?:BED_TEMP|BED|BED_TEMPERATURE)\s*=\s*([+-]?\d+\.?\d*)",
+    r"\b(?:BED_TEMP|BED|BED_TEMPERATURE|BEDTEMP)\s*=\s*([+-]?\d+\.?\d*)",
     re.IGNORECASE,
 )
 # Comment-embedded temp hints from slicer metadata
@@ -205,8 +205,21 @@ class GCodeParser:
 
             if fc == "G":
 
+                # Anycubic proprietary G9111 init command
+                if cmd_upper.startswith("G9111"):
+                    m_ext = re_klipper_macro_extruder_search(cmd_upper)
+                    if m_ext:
+                        temp = float(m_ext.group(1))
+                        if temp > 0:
+                            state.nozzle_temp = temp
+                    m_bed = re_klipper_macro_bed_search(cmd_upper)
+                    if m_bed:
+                        temp = float(m_bed.group(1))
+                        if temp > 0:
+                            state.bed_temp = temp
+
                 # G0/G1 lines are ~95% of all commands
-                if cmd_upper[1:2] in ("0", "1"):
+                elif cmd_upper[1:2] in ("0", "1"):
                     # Only run Z regex if 'Z' appears in the line
                     if "Z" in cmd_upper or "z" in cmd:
                         m_z = re_z_move_match(cmd_upper)
