@@ -208,6 +208,19 @@ class TestGCodeParserState:
         assert result.state.bed_temp == 60.0
         assert result.state.nozzle_temp == 205.0
 
+    def test_temp_detection_with_klipper_commands(self):
+        gcode = "\n".join([
+            "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=65",
+            "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=215",
+            "TEMPERATURE_WAIT SENSOR=heater_bed MINIMUM=65",
+            "TEMPERATURE_WAIT SENSOR=extruder MINIMUM=215",
+            "G1 X1 Y1 E0.1",
+        ]) + "\n"
+        parser = GCodeParser()
+        result = parser.parse_string(gcode)
+        assert result.state.bed_temp == 65.0
+        assert result.state.nozzle_temp == 215.0
+
     def test_imperial_units(self):
         gcode = "G20\nG91\nM83\nM140 S50\nM104 S180\nG1 Z0.3 E0.1\n"
         parser = GCodeParser()

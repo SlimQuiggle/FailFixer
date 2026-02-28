@@ -29,10 +29,18 @@ _RE_Z_MOVE = re.compile(
     r"^G[01]\s.*Z\s*([+-]?\d+\.?\d*)", re.IGNORECASE
 )
 _RE_TEMP_BED = re.compile(
-    r"^M(140|190)\s.*[SR]\s*(\d+\.?\d*)", re.IGNORECASE
+    r"^M(140|190)\b.*?[SR]\s*([+-]?\d+\.?\d*)", re.IGNORECASE
 )
 _RE_TEMP_NOZZLE = re.compile(
-    r"^M(104|109)\s.*[SR]\s*(\d+\.?\d*)", re.IGNORECASE
+    r"^M(104|109)\b.*?[SR]\s*([+-]?\d+\.?\d*)", re.IGNORECASE
+)
+_RE_KLIPPER_SET_HEATER = re.compile(
+    r"^SET_HEATER_TEMPERATURE\b.*?\bHEATER\s*=\s*([A-Z0-9_]+)\b.*?\bTARGET\s*=\s*([+-]?\d+\.?\d*)",
+    re.IGNORECASE,
+)
+_RE_KLIPPER_TEMP_WAIT = re.compile(
+    r"^TEMPERATURE_WAIT\b.*?\bSENSOR\s*=\s*([A-Z0-9_]+)\b.*?\b(?:MINIMUM|MAXIMUM|TARGET)\s*=\s*([+-]?\d+\.?\d*)",
+    re.IGNORECASE,
 )
 _RE_UNIT = re.compile(r"^G(20|21)\b", re.IGNORECASE)
 _RE_POS_MODE = re.compile(r"^G(90|91)\b", re.IGNORECASE)
@@ -123,6 +131,8 @@ class GCodeParser:
         re_z_move_match = _RE_Z_MOVE.match
         re_temp_bed_match = _RE_TEMP_BED.match
         re_temp_nozzle_match = _RE_TEMP_NOZZLE.match
+        re_klipper_set_heater_match = _RE_KLIPPER_SET_HEATER.match
+        re_klipper_temp_wait_match = _RE_KLIPPER_TEMP_WAIT.match
         re_unit_match = _RE_UNIT.match
         re_pos_mode_match = _RE_POS_MODE.match
         re_ext_mode_match = _RE_EXT_MODE.match
@@ -150,14 +160,16 @@ class GCodeParser:
                 continue
 
             # --- Command lines ---
+            semi = stripped.find(";")
+            cmd = stripped[:semi].rstrip() if semi >= 0 else stripped
+            if not cmd:
+                continue
+            cmd_upper = cmd.upper()
+
             # Fast-classify by first character to skip regex on bulk G1 moves
             fc = first_char.upper()
 
             if fc == "G":
-                # Strip inline comments
-                semi = stripped.find(";")
-                cmd = stripped[:semi].rstrip() if semi >= 0 else stripped
-                cmd_upper = cmd.upper()
 
                 # G0/G1 lines are ~95% of all commands
                 if cmd_upper[1:2] in ("0", "1"):
@@ -183,10 +195,6 @@ class GCodeParser:
                         state.positioning = f"G{m_pos.group(1)}"
 
             elif fc == "M":
-                semi = stripped.find(";")
-                cmd = stripped[:semi].rstrip() if semi >= 0 else stripped
-                cmd_upper = cmd.upper()
-
                 # Quick prefix check to avoid regex on irrelevant M-codes
                 prefix3 = cmd_upper[1:4]  # digits after 'M'
                 if prefix3.startswith(("140", "190")):
@@ -205,6 +213,28 @@ class GCodeParser:
                     m_ext = re_ext_mode_match(cmd_upper)
                     if m_ext:
                         state.extruder_mode = f"M{m_ext.group(1)}"
+
+            elif cmd_upper.startswith("SET_HEATER_TEMPERATURE"):
+                m_heat = re_klipper_set_heater_match(cmd_upper)
+                if m_heat:
+                    heater = m_heat.group(1).upper()
+                    temp = float(m_heat.group(2))
+                    if temp > 0:
+                        if "BED" in heater:
+                            state.bed_temp = temp
+                        elif "EXTRUDER" in heater:
+                            state.nozzle_temp = temp
+
+            elif cmd_upper.startswith("TEMPERATURE_WAIT"):
+                m_wait = re_klipper_temp_wait_match(cmd_upper)
+                if m_wait:
+                    sensor = m_wait.group(1).upper()
+                    temp = float(m_wait.group(2))
+                    if temp > 0:
+                        if "BED" in sensor:
+                            state.bed_temp = temp
+                        elif "EXTRUDER" in sensor:
+                            state.nozzle_temp = temp
 
         # --- Build layer list from best available source ---
         result = ParsedGCode(lines=lines, state=state, header_end_line=header_end)
