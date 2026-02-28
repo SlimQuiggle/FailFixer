@@ -387,6 +387,37 @@ class TestResumeGeneratorHeader:
         assert "M190 S60" in text
         assert "M109 S200" in text
 
+    def test_preserves_thumbnail_and_material_metadata(self, resume_config):
+        gcode = "\n".join([
+            "; generated with OrcaSlicer",
+            "; filament_type = PLA",
+            "; filament_colour = #FFFFFF",
+            "; thumbnail begin 32x32 10",
+            "; iVBORw0KGgoAAA...",
+            "; thumbnail end",
+            "M140 S60",
+            "M104 S200",
+            ";LAYER:0",
+            "G1 Z0.2",
+            "G1 X1 Y1 E0.2",
+            ";LAYER:1",
+            "G1 Z0.4",
+            "G1 X2 Y2 E0.3",
+        ]) + "\n"
+
+        parser = GCodeParser()
+        parsed = parser.parse_string(gcode)
+        mapper = LayerMapper(parsed.layers)
+        match = mapper.by_layer_number(1)
+
+        gen = ResumeGenerator()
+        lines = gen.generate(parsed, match, resume_config)
+        text = "\n".join(lines)
+
+        assert "; thumbnail begin 32x32 10" in text
+        assert "; thumbnail end" in text
+        assert "; filament_type = PLA" in text
+
     def test_header_contains_resume_info(self, parsed_gcode, resume_config):
         gen = ResumeGenerator()
         mapper = LayerMapper(parsed_gcode.layers)

@@ -51,6 +51,7 @@ class ResumeGenerator:
         tail_lines = parsed.lines[start:]
 
         original_filename = getattr(parsed, "source_filename", "unknown")
+        metadata_lines = self._extract_visual_and_material_metadata(parsed)
 
         if config.resume_mode == "from_plate":
             out.extend(
@@ -60,6 +61,9 @@ class ResumeGenerator:
                     start_layer_z=layer.z_height,
                 )
             )
+            if metadata_lines:
+                out.extend(metadata_lines)
+                out.append("")
             shifted = [self._shift_z_to_plate(line, layer.z_height) for line in tail_lines]
             out.extend(shifted)
             return out
@@ -70,6 +74,9 @@ class ResumeGenerator:
                 config=config,
             )
         )
+        if metadata_lines:
+            out.extend(metadata_lines)
+            out.append("")
         out.extend(tail_lines)
         return out
 
@@ -197,6 +204,55 @@ class ResumeGenerator:
 
         shifted_code = _RE_Z_PARAM.sub(_replace, code)
         return f"{shifted_code}{sep}{comment}" if sep else shifted_code
+
+    def _extract_visual_and_material_metadata(self, parsed: ParsedGCode) -> list[str]:
+        """Preserve useful metadata blocks (thumbnail + filament/material comments)
+        from the source header so printer UIs (e.g., preview/filament assistants)
+        still work on generated files.
+        """
+        header_end = min(max(parsed.header_end_line, 0), len(parsed.lines))
+        if header_end == 0:
+            header_end = min(len(parsed.lines), 400)
+
+        out: list[str] = []
+        in_thumbnail = False
+
+        for raw in parsed.lines[:header_end]:
+            stripped = raw.strip()
+            lower = stripped.lower()
+
+            if lower.startswith("; thumbnail begin"):
+                in_thumbnail = True
+                out.append(raw)
+                continue
+            if in_thumbnail:
+                out.append(raw)
+                if lower.startswith("; thumbnail end"):
+                    in_thumbnail = False
+                continue
+
+            if not stripped.startswith(";"):
+                continue
+
+            if any(key in lower for key in (
+                "filament",
+                "material",
+                "nozzle_diameter",
+                "layer_height",
+                "printer",
+                "generated with",
+            )):
+                out.append(raw)
+
+        # de-dupe while preserving order
+        seen: set[str] = set()
+        unique: list[str] = []
+        for line in out:
+            if line in seen:
+                continue
+            seen.add(line)
+            unique.append(line)
+        return unique
 
 
 def _fmt_temp(temp: float) -> str:
