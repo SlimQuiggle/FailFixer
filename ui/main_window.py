@@ -1,4 +1,4 @@
-﻿"""FailFixer â€“ Main application window (PyQt6)."""
+"""FailFixer – Main application window (PyQt6)."""
 
 from __future__ import annotations
 
@@ -137,11 +137,11 @@ class GCodeFilePicker(QWidget):
         layout.setContentsMargins(6, 4, 6, 4)
 
         self.path_edit = QLineEdit()
-        self.path_edit.setPlaceholderText("Drop a .gcode file here or click Browseâ€¦")
+        self.path_edit.setPlaceholderText("Drop a .gcode file here or click Browse…")
         self.path_edit.setReadOnly(True)
         layout.addWidget(self.path_edit, stretch=1)
 
-        self.browse_btn = QPushButton("Browseâ€¦")
+        self.browse_btn = QPushButton("Browse…")
         self.browse_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.browse_btn.clicked.connect(self._browse)
         layout.addWidget(self.browse_btn)
@@ -267,7 +267,7 @@ Always supervise first-layer/initial movement when testing resume files.</p>
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("FailFixer â€” License Agreement")
+        self.setWindowTitle("FailFixer — License Agreement")
         self.setMinimumSize(440, 380)
         self.resize(480, 420)
 
@@ -306,10 +306,10 @@ class FAQDialog(QDialog):
     FAQ_CONTENT = """
 <h2 style="color:#00d4aa;">Frequently Asked Questions</h2>
 
-<h3 style="color:#ff6b35;">âš ï¸ Do I need to leave my print on the bed?</h3>
+<h3 style="color:#ff6b35;">⚠️ Do I need to leave my print on the bed?</h3>
 <p><b>YES!</b> The partial print must remain exactly where it is on the build plate.
 Do not move it, bump the bed, or adjust anything. FailFixer generates G-code that
-continues from where the print failed â€” if the object has shifted even slightly,
+continues from where the print failed — if the object has shifted even slightly,
 the layers won't align and the resume will fail.</p>
 
 <h3 style="color:#00d4aa;">How do I find the layer number where my print failed?</h3>
@@ -321,7 +321,7 @@ of layer number.</p>
 <h3 style="color:#00d4aa;">What if I don't know the exact layer?</h3>
 <p>Measure the height of your failed print with calipers. Enter that measurement
 using the "Z Height (mm)" option. FailFixer will find the closest layer. It's better
-to go <b>one layer lower</b> than too high â€” overlapping a layer is much better than
+to go <b>one layer lower</b> than too high — overlapping a layer is much better than
 leaving a gap.</p>
 
 <h3 style="color:#00d4aa;">Will the nozzle crash into my print when it homes?</h3>
@@ -347,12 +347,12 @@ below. You can minimize this by:</p>
 <h3 style="color:#00d4aa;">Which printers / firmware does this work with?</h3>
 <p>FailFixer supports:</p>
 <ul>
-<li><b>Marlin</b> â€” Ender 3, CR-10, Prusa MK3/MK4, most common printers</li>
-<li><b>Klipper</b> â€” Voron, custom builds, Sonic Pad setups</li>
-<li><b>RepRapFirmware</b> â€” Duet boards</li>
+<li><b>Marlin</b> — Ender 3, CR-10, Prusa MK3/MK4, most common printers</li>
+<li><b>Klipper</b> — Voron, custom builds, Sonic Pad setups</li>
+<li><b>RepRapFirmware</b> — Duet boards</li>
 </ul>
 <p>Select your firmware profile in Advanced Options. When in doubt, use "default_marlin"
-â€” it uses standard G-code that works on most printers.</p>
+— it uses standard G-code that works on most printers.</p>
 
 <h3 style="color:#00d4aa;">Can I resume a print that failed hours/days ago?</h3>
 <p>Yes, as long as the print hasn't been moved or removed from the bed. The printer
@@ -375,7 +375,7 @@ to verify or adjust settings before printing.</p>
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("FailFixer â€” FAQ")
+        self.setWindowTitle("FailFixer — FAQ")
         self.setMinimumSize(500, 500)
         self.resize(540, 600)
 
@@ -419,7 +419,7 @@ class ActivationDialog(QDialog):
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("FailFixer â€” Activation")
+        self.setWindowTitle("FailFixer — Activation")
         self.setMinimumSize(460, 300)
         self.resize(500, 320)
 
@@ -431,7 +431,7 @@ class ActivationDialog(QDialog):
         layout.setSpacing(12)
 
         # Header
-        header = QLabel("ðŸ”‘  Activate FailFixer")
+        header = QLabel("🔑  Activate FailFixer")
         header.setStyleSheet(
             "QLabel { color: #00d4aa; font-size: 16px; font-weight: 700; }"
         )
@@ -475,7 +475,7 @@ class ActivationDialog(QDialog):
 
         self.key_edit = QLineEdit()
         self.key_edit.setPlaceholderText(
-            "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  or  FFX1-â€¦"
+            "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  or  FFX1-…"
         )
         self.key_edit.setStyleSheet(
             "QLineEdit { font-family: 'Cascadia Code','Consolas',monospace; font-size: 13px; padding: 6px; }"
@@ -516,7 +516,7 @@ class ActivationDialog(QDialog):
         clipboard = QApplication.clipboard()
         if clipboard:
             clipboard.setText(self._machine_fp)
-            self.status_label.setText("âœ… Machine ID copied to clipboard.")
+            self.status_label.setText("✅ Machine ID copied to clipboard.")
             self.status_label.setStyleSheet("QLabel { color: #00d4aa; font-size: 12px; }")
 
     def _on_activate(self) -> None:
@@ -533,13 +533,13 @@ class ActivationDialog(QDialog):
         elif key.startswith("FFX1"):
             self._activate_ffx1(key)
         else:
-            self.status_label.setText("âŒ Unrecognised key format.")
+            self.status_label.setText("❌ Unrecognised key format.")
             self.status_label.setStyleSheet("QLabel { color: #ff4444; font-size: 12px; }")
 
     # -- Lemon activation --
 
     def _activate_lemon(self, key: str) -> None:
-        self.status_label.setText("â³ Contacting license serverâ€¦")
+        self.status_label.setText("⏳ Contacting license server…")
         self.status_label.setStyleSheet("QLabel { color: #b0b0c0; font-size: 12px; }")
         QApplication.processEvents()
 
@@ -553,17 +553,17 @@ class ActivationDialog(QDialog):
             self.lemon_customer_email = (
                 data.get("meta", {}).get("customer_email", "")
             )
-            self.status_label.setText(f"âœ… License activated!")
+            self.status_label.setText(f"✅ License activated!")
             self.status_label.setStyleSheet("QLabel { color: #00d4aa; font-size: 12px; }")
             self.accept()
         else:
             if reason.startswith("network_error:"):
                 self.status_label.setText(
-                    "âŒ Could not reach the license server.\n"
+                    "❌ Could not reach the license server.\n"
                     "Check your internet connection and try again."
                 )
             else:
-                self.status_label.setText(f"âŒ {reason}")
+                self.status_label.setText(f"❌ {reason}")
             self.status_label.setStyleSheet("QLabel { color: #ff4444; font-size: 12px; }")
 
     # -- FFX1 legacy activation --
@@ -573,11 +573,11 @@ class ActivationDialog(QDialog):
         if ok:
             self.accepted_key = key
             self.accepted_type = "ffx1"
-            self.status_label.setText(f"âœ… {reason}")
+            self.status_label.setText(f"✅ {reason}")
             self.status_label.setStyleSheet("QLabel { color: #00d4aa; font-size: 12px; }")
             self.accept()
         else:
-            self.status_label.setText(f"âŒ {reason}")
+            self.status_label.setText(f"❌ {reason}")
             self.status_label.setStyleSheet("QLabel { color: #ff4444; font-size: 12px; }")
 
 
@@ -592,7 +592,7 @@ class BugReportDialog(QDialog):
 
     def __init__(self, parent=None, firmware: str = "", machine_id: str = "") -> None:
         super().__init__(parent)
-        self.setWindowTitle("FailFixer â€” Report a Bug")
+        self.setWindowTitle("FailFixer — Report a Bug")
         self.setMinimumSize(520, 520)
         self.resize(560, 620)
 
@@ -695,7 +695,7 @@ class BugReportDialog(QDialog):
 class MainWindow(QMainWindow):
     """Primary FailFixer UI."""
 
-    WINDOW_TITLE = "FailFixer BETA â€” Resume Failed Print"
+    WINDOW_TITLE = "FailFixer BETA — Resume Failed Print"
 
     def __init__(self) -> None:
         super().__init__()
@@ -725,7 +725,7 @@ class MainWindow(QMainWindow):
     def _apply_theme(self) -> None:
         """Apply a modern dark theme with neon accent colors."""
         self.setStyleSheet("""
-            /* â”€â”€ Base â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+            /* Base */
             QMainWindow, QWidget {
                 background-color: #1a1a2e;
                 color: #e0e0e0;
@@ -733,7 +733,7 @@ class MainWindow(QMainWindow):
                 font-size: 13px;
             }
 
-            /* â”€â”€ Labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+            /* Labels */
             QLabel {
                 color: #e0e0e0;
             }
@@ -760,7 +760,7 @@ class MainWindow(QMainWindow):
                 max-height: 2px;
             }
 
-            /* â”€â”€ Inputs (line edits, spin boxes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+            /* Inputs (line edits, spin boxes) */
             QLineEdit, QSpinBox, QDoubleSpinBox {
                 background-color: #16213e;
                 color: #e0e0e0;
@@ -804,7 +804,7 @@ class MainWindow(QMainWindow):
                 width: 0; height: 0;
             }
 
-            /* â”€â”€ ComboBox â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+            /* ComboBox */
             QComboBox {
                 background-color: #16213e;
                 color: #e0e0e0;
@@ -839,7 +839,7 @@ class MainWindow(QMainWindow):
                 outline: none;
             }
 
-            /* â”€â”€ Group Boxes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+            /* Group Boxes */
             QGroupBox {
                 background-color: #16213e;
                 border: 1px solid #2a2a4a;
@@ -868,7 +868,7 @@ class MainWindow(QMainWindow):
                 border: 1px solid #00d4aa;
             }
 
-            /* â”€â”€ Radio Buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+            /* Radio Buttons */
             QRadioButton {
                 spacing: 6px;
                 color: #e0e0e0;
@@ -885,7 +885,7 @@ class MainWindow(QMainWindow):
                 border: 2px solid #00d4aa;
             }
 
-            /* â”€â”€ Buttons (general) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+            /* Buttons (general) */
             QPushButton {
                 background-color: #0f3460;
                 color: #e0e0e0;
@@ -920,7 +920,7 @@ class MainWindow(QMainWindow):
                 background-color: #e05520;
             }
 
-            /* â”€â”€ Status text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+            /* Status text */
             QTextEdit {
                 background-color: #111128;
                 color: #c8c8dc;
@@ -933,7 +933,7 @@ class MainWindow(QMainWindow):
                 selection-color: #1a1a2e;
             }
 
-            /* â”€â”€ Status Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+            /* Status Bar */
             QStatusBar {
                 background-color: #111128;
                 color: #8a8aa0;
@@ -941,7 +941,7 @@ class MainWindow(QMainWindow):
                 font-size: 12px;
             }
 
-            /* â”€â”€ Scrollbars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+            /* Scrollbars */
             QScrollBar:vertical {
                 background: #1a1a2e;
                 width: 8px;
@@ -983,7 +983,7 @@ class MainWindow(QMainWindow):
                 width: 0;
             }
 
-            /* â”€â”€ Tooltips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+            /* Tooltips */
             QToolTip {
                 background-color: #0f3460;
                 color: #e0e0e0;
@@ -992,7 +992,7 @@ class MainWindow(QMainWindow):
                 padding: 4px;
             }
 
-            /* â”€â”€ Message Box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+            /* Message Box */
             QMessageBox {
                 background-color: #1a1a2e;
             }
@@ -1184,7 +1184,7 @@ class MainWindow(QMainWindow):
         )
         license_row.addWidget(self.license_status_label, stretch=1)
 
-        self.license_btn = QPushButton("ðŸ”‘ License")
+        self.license_btn = QPushButton("🔑 License")
         self.license_btn.setStyleSheet(
             "QPushButton { background-color: #2a1a2e; color: #00d4aa; "
             "font-weight: 600; border: 1px solid #00d4aa; border-radius: 6px; "
@@ -1197,7 +1197,7 @@ class MainWindow(QMainWindow):
         root.addLayout(license_row)
 
         # --- Generate button ---
-        self.generate_btn = QPushButton("âš¡  Generate Resume File")
+        self.generate_btn = QPushButton("⚡  Generate Resume File")
         self.generate_btn.setObjectName("generateBtn")
         self.generate_btn.setMinimumHeight(40)
         self.generate_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -1211,11 +1211,11 @@ class MainWindow(QMainWindow):
         self.status_text = QTextEdit()
         self.status_text.setReadOnly(True)
         self.status_text.setMaximumHeight(140)
-        self.status_text.setPlaceholderText("Parse results and status messages will appear hereâ€¦")
+        self.status_text.setPlaceholderText("Parse results and status messages will appear here…")
         root.addWidget(self.status_text)
 
         # --- Warning banner ---
-        warning_label = QLabel("âš ï¸  In-Air mode: keep failed print fixed on bed. Plate mode prints a separate top section.")
+        warning_label = QLabel("⚠️  In-Air mode: keep failed print fixed on bed. Plate mode prints a separate top section.")
         warning_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         warning_label.setStyleSheet(
             "QLabel { background-color: #3d1a00; color: #ff6b35; "
@@ -1227,7 +1227,7 @@ class MainWindow(QMainWindow):
         # --- FAQ + Legal buttons ---
         info_buttons = QHBoxLayout()
 
-        faq_btn = QPushButton("â“  FAQ â€” Common Questions")
+        faq_btn = QPushButton("❓  FAQ — Common Questions")
         faq_btn.setStyleSheet(
             "QPushButton { background-color: #0f3460; color: #00d4aa; "
             "font-weight: 600; border: 1px solid #00d4aa; border-radius: 6px; "
@@ -1238,7 +1238,7 @@ class MainWindow(QMainWindow):
         faq_btn.clicked.connect(self._show_faq)
         info_buttons.addWidget(faq_btn)
 
-        legal_btn = QPushButton("âš–ï¸  License & Liability")
+        legal_btn = QPushButton("⚖️  License & Liability")
         legal_btn.setStyleSheet(
             "QPushButton { background-color: #2a1a2e; color: #ff6b35; "
             "font-weight: 600; border: 1px solid #ff6b35; border-radius: 6px; "
@@ -1249,7 +1249,7 @@ class MainWindow(QMainWindow):
         legal_btn.clicked.connect(self._show_license)
         info_buttons.addWidget(legal_btn)
 
-        bug_btn = QPushButton("ðŸž  Report Bug")
+        bug_btn = QPushButton("🐞  Report Bug")
         bug_btn.setStyleSheet(
             "QPushButton { background-color: #132a3a; color: #5cd6ff; "
             "font-weight: 600; border: 1px solid #5cd6ff; border-radius: 6px; "
@@ -1301,7 +1301,7 @@ class MainWindow(QMainWindow):
         else:
             params["z_height"] = self.z_height_input.value()
 
-        # Park coordinates â€” only include if advanced section is expanded
+        # Park coordinates — only include if advanced section is expanded
         # and values are non-zero (i.e., user intentionally set them)
         if self.park_x_spin.value() > 0:
             params["park_x"] = self.park_x_spin.value()
@@ -1426,7 +1426,7 @@ class MainWindow(QMainWindow):
         )
 
         if ok:
-            # Online validation passed â€” update timestamp
+            # Online validation passed — update timestamp
             now_iso = datetime.now(timezone.utc).isoformat()
             settings.setValue("license/last_validated_at", now_iso)
             lk = data.get("license_key", {})
@@ -1439,7 +1439,7 @@ class MainWindow(QMainWindow):
 
         # Distinguish hard rejection vs network error
         if reason.startswith("network_error:"):
-            # Network issue â€” apply grace period
+            # Network issue — apply grace period
             if last_validated:
                 try:
                     last_dt = datetime.fromisoformat(last_validated)
@@ -1453,7 +1453,7 @@ class MainWindow(QMainWindow):
             # Grace expired or never validated
             self._set_activated(False)
         else:
-            # Invalid / expired / disabled â€” hard rejection
+            # Invalid / expired / disabled — hard rejection
             settings.setValue("license/status", "invalid")
             settings.sync()
             self._set_activated(False)
@@ -1485,7 +1485,7 @@ class MainWindow(QMainWindow):
         """Show the activation dialog and process the result."""
         dialog = ActivationDialog(self)
         if dialog.exec() != QDialog.DialogCode.Accepted or not dialog.accepted_key:
-            return  # rejected/skipped â€” keep current state
+            return  # rejected/skipped — keep current state
 
         settings = QSettings("FleX3Designs", "FailFixer")
 
@@ -1505,7 +1505,7 @@ class MainWindow(QMainWindow):
             display = dialog.lemon_customer_email or "Lemon License"
             self._set_activated(True, display)
             self.statusBar().showMessage("License activated via Lemon Squeezy")
-            self._log("ðŸ”‘ Lemon Squeezy license activated.")
+            self._log("🔑 Lemon Squeezy license activated.")
 
         elif dialog.accepted_type == "ffx1":
             # Store legacy FFX1 key
@@ -1517,7 +1517,7 @@ class MainWindow(QMainWindow):
             if ok:
                 self._set_activated(True, claims.get("licensee", ""))
                 self.statusBar().showMessage("License activated successfully")
-                self._log("ðŸ”‘ License activated (FFX1).")
+                self._log("🔑 License activated (FFX1).")
             else:
                 self._set_activated(False)
 
@@ -1532,7 +1532,7 @@ class MainWindow(QMainWindow):
                 self,
                 "License Required",
                 "A valid license key is required to generate resume files.\n\n"
-                "Click the ðŸ”‘ License button to activate.",
+                "Click the 🔑 License button to activate.",
             )
             return
 
@@ -1568,7 +1568,7 @@ class MainWindow(QMainWindow):
             return
 
         # 4. Run controller
-        self.statusBar().showMessage("Generatingâ€¦")
+        self.statusBar().showMessage("Generating…")
         self._log("---")
         self._log(f"Processing: {params['gcode_path']}")
         QApplication.processEvents()
@@ -1586,25 +1586,25 @@ class MainWindow(QMainWindow):
                 resume_mode=params.get("resume_mode", "in_air"),
             )
         except Exception as exc:
-            self._log(f"âŒ Error: {exc}")
+            self._log(f"❌ Error: {exc}")
             QMessageBox.critical(self, "Generation Failed", str(exc))
             self.statusBar().showMessage("Failed")
             return
 
         # 5. Report results
-        self._log(f"âœ… Resume file saved: {result.output_path}")
+        self._log(f"✅ Resume file saved: {result.output_path}")
         if hasattr(result, "total_layers"):
             self._log(f"   Total layers detected: {result.total_layers}")
         if hasattr(result, "bed_temp") and result.bed_temp:
-            self._log(f"   Bed temp: {result.bed_temp}Â°C")
+            self._log(f"   Bed temp: {result.bed_temp}°C")
         if hasattr(result, "nozzle_temp") and result.nozzle_temp:
-            self._log(f"   Nozzle temp: {result.nozzle_temp}Â°C")
+            self._log(f"   Nozzle temp: {result.nozzle_temp}°C")
 
         if hasattr(result, "warnings") and result.warnings:
             for w in result.warnings:
-                self._log(f"   âš ï¸  {w}")
+                self._log(f"   ⚠️  {w}")
 
-        self.statusBar().showMessage("Done â€” file saved")
+        self.statusBar().showMessage("Done — file saved")
         QMessageBox.information(
             self,
             "Success",
