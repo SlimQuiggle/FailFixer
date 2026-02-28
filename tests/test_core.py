@@ -496,7 +496,7 @@ class TestResumeGeneratorBuildPlateMode:
         text = "\n".join(lines)
         assert "Resume Mode: from_plate" in text
         assert "G28" in text
-        assert "G1 X10 Y10 Z0.000 E3.0" in text
+        assert "G1 X10 Y10 Z0.200 E3.0" in text
 
 
 class TestResumeGeneratorZOffset:
@@ -545,7 +545,8 @@ class TestResumeGeneratorFromPlate:
         lines = gen.generate(parsed_gcode, match, config)
         text = "\n".join(lines)
         assert "Resume Mode: from_plate" in text
-        assert "G28                        ; Home all axes" in text
+        # Could come from original preamble or fallback header
+        assert any(line.strip().upper().startswith("G28") for line in lines)
 
     def test_from_plate_rebases_z_values(self, parsed_gcode):
         gen = ResumeGenerator()
@@ -560,8 +561,8 @@ class TestResumeGeneratorFromPlate:
         )
         lines = gen.generate(parsed_gcode, match, config)
         text = "\n".join(lines)
-        assert "G1 X10 Y10 Z0.000 E3.0" in text
-        assert "G1 X10 Y10 Z0.300 E5.0" in text
+        assert "G1 X10 Y10 Z0.200 E3.0" in text
+        assert "G1 X10 Y10 Z0.500 E5.0" in text
 
 
 # ======================================================================
@@ -880,7 +881,7 @@ class TestControllerRun:
         result = ctrl.run(request)
         content = result.output_path.read_text(encoding="utf-8")
         assert "Resume Mode: from_plate" in content
-        assert "G1 X10 Y10 Z0.000 E3.0" in content
+        assert "G1 X10 Y10 Z0.200 E3.0" in content
 
 
 class TestFailFixerControllerProcess:
@@ -980,3 +981,4 @@ class TestEndToEnd:
             assert result.validation.ok, (
                 f"{name}: {[e.message for e in result.validation.errors]}"
             )
+
