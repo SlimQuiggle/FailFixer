@@ -711,6 +711,7 @@ class MainWindow(QMainWindow):
             self.setWindowIcon(QIcon(str(logo_path)))
 
         self.controller = FailFixerController()
+        self._theme_mode = "dark"
 
         self._apply_theme()
         self._build_ui()
@@ -725,8 +726,8 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _apply_theme(self) -> None:
-        """Apply a modern dark theme with neon accent colors."""
-        self.setStyleSheet("""
+        """Apply dark/light theme while preserving app styling."""
+        css = """
             /* Base */
             QMainWindow, QWidget {
                 background-color: #1a1a2e;
@@ -1004,7 +1005,47 @@ class MainWindow(QMainWindow):
             QMessageBox QPushButton {
                 min-width: 80px;
             }
-        """)
+        """
+
+        if self._theme_mode == "light":
+            css = self._to_light_css(css)
+        self.setStyleSheet(css)
+
+    def _to_light_css(self, css: str) -> str:
+        """Quick color remap for a usable light mode."""
+        replacements = [
+            ("#1a1a2e", "#f6f8fb"),
+            ("#111128", "#ffffff"),
+            ("#16213e", "#ffffff"),
+            ("#0f3460", "#dbe7f5"),
+            ("#2a2a4a", "#cfd8e3"),
+            ("#333355", "#b8c4d1"),
+            ("#e0e0e0", "#1e2a36"),
+            ("#c8c8dc", "#2a3642"),
+            ("#b0b0c0", "#3d4b59"),
+            ("#8a8aa0", "#5a6b7d"),
+            ("#555570", "#7b8da1"),
+            ("#00d4aa", "#0f9d7a"),
+            ("#1a4a7a", "#c7dcf3"),
+            ("#0a2540", "#b7d0ea"),
+            ("#3d1a00", "#fff1e8"),
+            ("#ff6b35", "#c65a2a"),
+            ("#ff8855", "#d56e40"),
+            ("#ffaa77", "#de8a62"),
+            ("#e05520", "#b84a1d"),
+            ("#2a1a2e", "#f2e9f5"),
+            ("#132a3a", "#e8f6ff"),
+            ("#5cd6ff", "#2f83a2"),
+            ("#ffffff", "#0f1720"),
+        ]
+        for old, new in replacements:
+            css = css.replace(old, new)
+        return css
+
+    def _on_theme_changed(self) -> None:
+        if hasattr(self, "theme_combo"):
+            self._theme_mode = self.theme_combo.currentData() or "dark"
+        self._apply_theme()
 
     # ------------------------------------------------------------------
     # UI construction
@@ -1115,6 +1156,19 @@ class MainWindow(QMainWindow):
         self.start_mode_combo.addItem("Restart from plate (for glue workflow)", "from_plate")
         start_mode_row.addWidget(self.start_mode_combo, stretch=1)
         root.addLayout(start_mode_row)
+
+        # --- Theme selector ---
+        theme_row = QHBoxLayout()
+        theme_label = QLabel("Theme")
+        theme_label.setProperty("class", "section-title")
+        theme_row.addWidget(theme_label)
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItem("Dark", "dark")
+        self.theme_combo.addItem("Light", "light")
+        self.theme_combo.setCurrentIndex(0)
+        self.theme_combo.currentIndexChanged.connect(self._on_theme_changed)
+        theme_row.addWidget(self.theme_combo, stretch=1)
+        root.addLayout(theme_row)
 
         # --- Firmware selector (top-level, not hidden) ---
         fw_row = QHBoxLayout()
