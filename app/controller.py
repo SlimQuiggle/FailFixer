@@ -84,11 +84,16 @@ class Controller:
             warnings.append(match.warning)
 
         # 4. Build config
+        fallback_bed_temp = 60.0
+        fallback_nozzle_temp = 200.0
+        resolved_bed_temp = parsed.state.bed_temp if parsed.state.bed_temp > 0 else fallback_bed_temp
+        resolved_nozzle_temp = parsed.state.nozzle_temp if parsed.state.nozzle_temp > 0 else fallback_nozzle_temp
+
         config = ResumeConfig(
             resume_layer=match.layer.number,
             resume_z=match.layer.z_height,
-            bed_temp=parsed.state.bed_temp,
-            nozzle_temp=parsed.state.nozzle_temp,
+            bed_temp=resolved_bed_temp,
+            nozzle_temp=resolved_nozzle_temp,
             safe_lift_mm=profile.safe_lift_mm,
             z_offset_mm=request.z_offset_mm,
             bed_mesh_cmd=profile.bed_mesh_cmd,
@@ -96,15 +101,13 @@ class Controller:
         )
 
         # Temperature sanity
-        if config.bed_temp <= 0:
+        if parsed.state.bed_temp <= 0:
             warnings.append(
-                "Bed temperature not detected in original file — "
-                "using 0. You may need to edit the output."
+                f"Bed temperature not detected in original file — using fallback {fallback_bed_temp:.0f}C."
             )
-        if config.nozzle_temp <= 0:
+        if parsed.state.nozzle_temp <= 0:
             warnings.append(
-                "Nozzle temperature not detected in original file — "
-                "using 0. You may need to edit the output."
+                f"Nozzle temperature not detected in original file — using fallback {fallback_nozzle_temp:.0f}C."
             )
 
         # 5. Generate
