@@ -42,6 +42,24 @@ _RE_KLIPPER_TEMP_WAIT = re.compile(
     r"^TEMPERATURE_WAIT\b.*?\bSENSOR\s*=\s*([A-Z0-9_]+)\b.*?\b(?:MINIMUM|MAXIMUM|TARGET)\s*=\s*([+-]?\d+\.?\d*)",
     re.IGNORECASE,
 )
+# Klipper START_PRINT / PRINT_START macros that pass temps as params
+_RE_KLIPPER_MACRO_EXTRUDER = re.compile(
+    r"\b(?:EXTRUDER_TEMP|EXTRUDER|HOTEND|NOZZLE|NOZZLE_TEMP|HOTEND_TEMP)\s*=\s*([+-]?\d+\.?\d*)",
+    re.IGNORECASE,
+)
+_RE_KLIPPER_MACRO_BED = re.compile(
+    r"\b(?:BED_TEMP|BED|BED_TEMPERATURE)\s*=\s*([+-]?\d+\.?\d*)",
+    re.IGNORECASE,
+)
+# Comment-embedded temp hints from slicer metadata
+_RE_COMMENT_NOZZLE_TEMP = re.compile(
+    r";\s*(?:nozzle_temperature|temperature_extruder|extruder_temperature|hotend_temp|nozzle_temp|first_layer_temperature)\s*=\s*(\d+\.?\d*)",
+    re.IGNORECASE,
+)
+_RE_COMMENT_BED_TEMP = re.compile(
+    r";\s*(?:bed_temperature|first_layer_bed_temperature|heated_bed_temperature)\s*=\s*(\d+\.?\d*)",
+    re.IGNORECASE,
+)
 _RE_UNIT = re.compile(r"^G(20|21)\b", re.IGNORECASE)
 _RE_POS_MODE = re.compile(r"^G(90|91)\b", re.IGNORECASE)
 _RE_EXT_MODE = re.compile(r"^M(82|83)\b", re.IGNORECASE)
@@ -133,6 +151,8 @@ class GCodeParser:
         re_temp_nozzle_match = _RE_TEMP_NOZZLE.match
         re_klipper_set_heater_match = _RE_KLIPPER_SET_HEATER.match
         re_klipper_temp_wait_match = _RE_KLIPPER_TEMP_WAIT.match
+        re_klipper_macro_extruder_search = _RE_KLIPPER_MACRO_EXTRUDER.search
+        re_klipper_macro_bed_search = _RE_KLIPPER_MACRO_BED.search
         re_unit_match = _RE_UNIT.match
         re_pos_mode_match = _RE_POS_MODE.match
         re_ext_mode_match = _RE_EXT_MODE.match
@@ -157,6 +177,19 @@ class GCodeParser:
                         layer_markers.append((idx, int(m.group(1)), None))
                     elif re_layer_change_search(stripped):
                         layer_change_markers.append(idx)
+                # Slicer comment metadata for temps (fallback)
+                if state.nozzle_temp == 0.0:
+                    m_cn = _RE_COMMENT_NOZZLE_TEMP.search(stripped)
+                    if m_cn:
+                        temp = float(m_cn.group(1))
+                        if temp > 0:
+                            state.nozzle_temp = temp
+                if state.bed_temp == 0.0:
+                    m_cb = _RE_COMMENT_BED_TEMP.search(stripped)
+                    if m_cb:
+                        temp = float(m_cb.group(1))
+                        if temp > 0:
+                            state.bed_temp = temp
                 continue
 
             # --- Command lines ---
@@ -235,6 +268,20 @@ class GCodeParser:
                             state.bed_temp = temp
                         elif "EXTRUDER" in sensor:
                             state.nozzle_temp = temp
+
+            else:
+                # Catch-all for Klipper macros like PRINT_START, START_PRINT, etc.
+                # that pass temps as key=value parameters
+                m_macro_ext = re_klipper_macro_extruder_search(cmd_upper)
+                if m_macro_ext:
+                    temp = float(m_macro_ext.group(1))
+                    if temp > 0:
+                        state.nozzle_temp = temp
+                m_macro_bed = re_klipper_macro_bed_search(cmd_upper)
+                if m_macro_bed:
+                    temp = float(m_macro_bed.group(1))
+                    if temp > 0:
+                        state.bed_temp = temp
 
         # --- Build layer list from best available source ---
         result = ParsedGCode(lines=lines, state=state, header_end_line=header_end)
