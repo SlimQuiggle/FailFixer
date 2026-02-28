@@ -1043,10 +1043,20 @@ class MainWindow(QMainWindow):
             css = css.replace(old, new)
         return css
 
-    def _on_theme_changed(self) -> None:
-        if hasattr(self, "theme_combo"):
-            self._theme_mode = self.theme_combo.currentData() or "dark"
+    def _update_theme_toggle(self) -> None:
+        if not hasattr(self, "theme_toggle_btn"):
+            return
+        if self._theme_mode == "dark":
+            self.theme_toggle_btn.setText("🌙")
+            self.theme_toggle_btn.setToolTip("Switch to Light mode")
+        else:
+            self.theme_toggle_btn.setText("☀️")
+            self.theme_toggle_btn.setToolTip("Switch to Dark mode")
+
+    def _toggle_theme(self) -> None:
+        self._theme_mode = "light" if self._theme_mode == "dark" else "dark"
         self._apply_theme()
+        self._update_theme_toggle()
 
     # ------------------------------------------------------------------
     # UI construction
@@ -1091,20 +1101,13 @@ class MainWindow(QMainWindow):
         header_text_col.addWidget(header_subtitle)
         header_row.addLayout(header_text_col, stretch=1)
 
-        # Theme control at top-right
-        theme_col = QVBoxLayout()
-        theme_col.setSpacing(2)
-        theme_col.setContentsMargins(0, 0, 0, 0)
-        theme_label = QLabel("Theme")
-        theme_label.setProperty("class", "section-title")
-        self.theme_combo = QComboBox()
-        self.theme_combo.addItem("Dark", "dark")
-        self.theme_combo.addItem("Light", "light")
-        self.theme_combo.setCurrentIndex(0)
-        self.theme_combo.currentIndexChanged.connect(self._on_theme_changed)
-        theme_col.addWidget(theme_label, alignment=Qt.AlignmentFlag.AlignRight)
-        theme_col.addWidget(self.theme_combo)
-        header_row.addLayout(theme_col)
+        # Theme toggle at top-right
+        self.theme_toggle_btn = QPushButton("🌙")
+        self.theme_toggle_btn.setFixedSize(36, 30)
+        self.theme_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.theme_toggle_btn.clicked.connect(self._toggle_theme)
+        self._update_theme_toggle()
+        header_row.addWidget(self.theme_toggle_btn, alignment=Qt.AlignmentFlag.AlignTop)
 
         root.addLayout(header_row)
 
@@ -1172,19 +1175,6 @@ class MainWindow(QMainWindow):
         self.start_mode_combo.addItem("Restart from plate (for glue workflow)", "from_plate")
         start_mode_row.addWidget(self.start_mode_combo, stretch=1)
         root.addLayout(start_mode_row)
-
-        # --- Theme selector ---
-        theme_row = QHBoxLayout()
-        theme_label = QLabel("Theme")
-        theme_label.setProperty("class", "section-title")
-        theme_row.addWidget(theme_label)
-        self.theme_combo = QComboBox()
-        self.theme_combo.addItem("Dark", "dark")
-        self.theme_combo.addItem("Light", "light")
-        self.theme_combo.setCurrentIndex(0)
-        self.theme_combo.currentIndexChanged.connect(self._on_theme_changed)
-        theme_row.addWidget(self.theme_combo, stretch=1)
-        root.addLayout(theme_row)
 
         # --- Firmware selector (top-level, not hidden) ---
         fw_row = QHBoxLayout()
