@@ -1015,10 +1015,10 @@ class MainWindow(QMainWindow):
         """Quick color remap for a usable light mode."""
         replacements = [
             # Windows-classic-like gray light palette
-            ("#1a1a2e", "#e6e6e6"),
-            ("#111128", "#dcdcdc"),
-            ("#16213e", "#f4f4f4"),
-            ("#0f3460", "#e1e1e1"),
+            ("#1a1a2e", "#d6d6d6"),
+            ("#111128", "#cdcdcd"),
+            ("#16213e", "#d6d6d6"),
+            ("#0f3460", "#cfcfcf"),
             ("#2a2a4a", "#b7b7b7"),
             ("#333355", "#a0a0a0"),
             ("#e0e0e0", "#1f1f1f"),
