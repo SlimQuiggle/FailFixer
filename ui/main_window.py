@@ -1014,30 +1014,30 @@ class MainWindow(QMainWindow):
     def _to_light_css(self, css: str) -> str:
         """Quick color remap for a usable light mode."""
         replacements = [
-            # Windows-like neutral light palette
-            ("#1a1a2e", "#f3f3f3"),
-            ("#111128", "#ececec"),
-            ("#16213e", "#ffffff"),
-            ("#0f3460", "#dfe7f1"),
-            ("#2a2a4a", "#c9d1db"),
-            ("#333355", "#aeb8c4"),
-            ("#e0e0e0", "#1f2933"),
-            ("#c8c8dc", "#2f3b45"),
-            ("#b0b0c0", "#465665"),
-            ("#8a8aa0", "#5f7284"),
-            ("#555570", "#7b8fa3"),
-            ("#00d4aa", "#0f7cc0"),
-            ("#1a4a7a", "#c9d9ea"),
-            ("#0a2540", "#b8cbe0"),
-            ("#3d1a00", "#fff4e8"),
-            ("#ff6b35", "#b85a2e"),
-            ("#ff8855", "#c96d44"),
-            ("#ffaa77", "#d98a69"),
-            ("#e05520", "#a84921"),
-            ("#2a1a2e", "#eeeaf2"),
-            ("#132a3a", "#e8f3fb"),
-            ("#5cd6ff", "#2d86aa"),
-            ("#ffffff", "#111b24"),
+            # Windows-classic-like gray light palette
+            ("#1a1a2e", "#e6e6e6"),
+            ("#111128", "#dcdcdc"),
+            ("#16213e", "#f4f4f4"),
+            ("#0f3460", "#e1e1e1"),
+            ("#2a2a4a", "#b7b7b7"),
+            ("#333355", "#a0a0a0"),
+            ("#e0e0e0", "#1f1f1f"),
+            ("#c8c8dc", "#2f2f2f"),
+            ("#b0b0c0", "#444444"),
+            ("#8a8aa0", "#5e5e5e"),
+            ("#555570", "#737373"),
+            ("#00d4aa", "#0066cc"),
+            ("#1a4a7a", "#d6d6d6"),
+            ("#0a2540", "#c7c7c7"),
+            ("#3d1a00", "#f5ece6"),
+            ("#ff6b35", "#a34f29"),
+            ("#ff8855", "#b8643f"),
+            ("#ffaa77", "#c97b58"),
+            ("#e05520", "#954521"),
+            ("#2a1a2e", "#e8e8e8"),
+            ("#132a3a", "#ebebeb"),
+            ("#5cd6ff", "#2d6f8a"),
+            ("#ffffff", "#111111"),
         ]
         for old, new in replacements:
             css = css.replace(old, new)
@@ -1047,10 +1047,10 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "theme_toggle_btn"):
             return
         if self._theme_mode == "dark":
-            self.theme_toggle_btn.setText("🌙")
+            self.theme_toggle_btn.setText("☾")
             self.theme_toggle_btn.setToolTip("Switch to Light mode")
         else:
-            self.theme_toggle_btn.setText("☀️")
+            self.theme_toggle_btn.setText("☀")
             self.theme_toggle_btn.setToolTip("Switch to Dark mode")
 
     def _toggle_theme(self) -> None:
