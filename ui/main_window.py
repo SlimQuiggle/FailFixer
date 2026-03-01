@@ -1341,7 +1341,7 @@ class MainWindow(QMainWindow):
         # --- FAQ + Legal buttons ---
         info_buttons = QHBoxLayout()
 
-        faq_btn = QPushButton("❓  FAQ - Common Questions")
+        self.faq_btn = QPushButton("❓  FAQ - Common Questions")
         self.faq_btn.setStyleSheet(
             "QPushButton { background-color: #0f3460; color: #00d4aa; "
             "font-weight: 600; border: 1px solid #00d4aa; border-radius: 6px; "
