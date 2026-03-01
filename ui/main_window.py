@@ -1098,10 +1098,10 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "theme_toggle_btn"):
             return
         if self._theme_mode == "dark":
-            self.theme_toggle_btn.setText("☾")
+            self.theme_toggle_btn.setText("🌙")
             self.theme_toggle_btn.setToolTip("Switch to Light mode")
         else:
-            self.theme_toggle_btn.setText("☀")
+            self.theme_toggle_btn.setText("🌞")
             self.theme_toggle_btn.setToolTip("Switch to Dark mode")
 
     def _toggle_theme(self) -> None:
