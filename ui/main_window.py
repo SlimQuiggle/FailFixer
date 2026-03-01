@@ -39,6 +39,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from failfixer import __version__
 from failfixer.app.controller import FailFixerController
 from failfixer.core.licensing import machine_fingerprint, verify_license
 from failfixer.core.lemon_licensing import (
@@ -697,7 +698,7 @@ class BugReportDialog(QDialog):
 class MainWindow(QMainWindow):
     """Primary FailFixer UI."""
 
-    WINDOW_TITLE = "FailFixer BETA - Resume Failed Print"
+    WINDOW_TITLE = f"FailFixer {__version__} - Resume Failed Print"
 
     def __init__(self) -> None:
         super().__init__()
@@ -1093,7 +1094,7 @@ class MainWindow(QMainWindow):
 
         header_text_col = QVBoxLayout()
         header_text_col.setSpacing(0)
-        header_title = QLabel("FailFixer BETA")
+        header_title = QLabel(f"FailFixer {__version__}")
         header_title.setObjectName("headerTitle")
         header_text_col.addWidget(header_title)
         header_subtitle = QLabel("Resume Failed 3D Prints")
