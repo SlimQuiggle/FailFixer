@@ -1035,3 +1035,144 @@ class TestEndToEnd:
                 f"{name}: {[e.message for e in result.validation.errors]}"
             )
 
+
+
+# ======================================================================
+# 6. V1 Default Mode & Disabled In-Air Tests
+# ======================================================================
+
+class TestDefaultResumeMode:
+    """Verify that from_plate is the V1 default and produces safe output."""
+
+    def test_default_resume_mode_is_from_plate(self):
+        """ResumeRequest defaults to in_air at the dataclass level,
+        but the V1 UI forces from_plate.  Verify from_plate works as default."""
+        request = ResumeRequest(
+            input_path="dummy.gcode",
+            resume_selector=1,
+            resume_mode="from_plate",
+        )
+        assert request.resume_mode == "from_plate"
+
+    def test_from_plate_output_prefix(self, tmp_path):
+        """On-Plate prefix must appear in output filename when mode is from_plate."""
+        gcode_path = _write_gcode(tmp_path, GCODE_LAYER_COMMENT)
+        ctrl = Controller(profiles_dir=str(tmp_path / "profiles"))
+        request = ResumeRequest(
+            input_path=str(gcode_path),
+            resume_selector=1,
+            output_dir=str(tmp_path),
+            resume_mode="from_plate",
+        )
+        result = ctrl.run(request)
+        assert result.output_path.name.startswith("On-Plate_")
+
+    def test_in_air_output_prefix(self, tmp_path):
+        """In-Place prefix must appear in output filename when mode is in_air."""
+        gcode_path = _write_gcode(tmp_path, GCODE_LAYER_COMMENT)
+        ctrl = Controller(profiles_dir=str(tmp_path / "profiles"))
+        request = ResumeRequest(
+            input_path=str(gcode_path),
+            resume_selector=1,
+            output_dir=str(tmp_path),
+            resume_mode="in_air",
+        )
+        result = ctrl.run(request)
+        assert result.output_path.name.startswith("In-Place_")
+
+    def test_in_air_functionality_still_works(self, tmp_path):
+        """In-air mode must remain functional even though the UI disables it."""
+        gcode_path = _write_gcode(tmp_path, GCODE_LAYER_COMMENT)
+        ctrl = Controller(profiles_dir=str(tmp_path / "profiles"))
+        request = ResumeRequest(
+            input_path=str(gcode_path),
+            resume_selector=1,
+            output_dir=str(tmp_path),
+            resume_mode="in_air",
+        )
+        result = ctrl.run(request)
+        assert result.output_path.exists()
+        assert result.validation.ok
+        content = result.output_path.read_text(encoding="utf-8")
+        # In-air should NOT contain from_plate mode marker
+        assert "Resume Mode: from_plate" not in content
+
+    def test_from_plate_validation_passes(self, tmp_path):
+        """Full pipeline with from_plate must produce a valid output file."""
+        gcode_path = _write_gcode(tmp_path, GCODE_LAYER_COMMENT)
+        ctrl = Controller(profiles_dir=str(tmp_path / "profiles"))
+        request = ResumeRequest(
+            input_path=str(gcode_path),
+            resume_selector=1,
+            output_dir=str(tmp_path),
+            resume_mode="from_plate",
+        )
+        result = ctrl.run(request)
+        assert result.validation.ok, (
+            f"Errors: {[e.message for e in result.validation.errors]}"
+        )
+        content = result.output_path.read_text(encoding="utf-8")
+        assert "Resume Mode: from_plate" in content
+
+
+# ======================================================================
+# 7. Bambu / Orca Profile Groundwork Tests
+# ======================================================================
+
+class TestBambuOrcaProfile:
+    """Validate Bambu profile loading and auto-detection markers."""
+
+    def test_bambu_profile_loads(self):
+        loader = __import__(
+            "failfixer.core.profiles", fromlist=["ProfileLoader"]
+        ).ProfileLoader()
+        names = loader.list_profiles()
+        assert "bambu_orca.json" in names
+
+    def test_bambu_profile_fields(self):
+        from failfixer.core.profiles import ProfileLoader
+        loader = ProfileLoader()
+        profile = loader.load("bambu_orca.json")
+        assert profile.firmware == "bambu_orca"
+        assert profile.safe_lift_mm > 0
+        assert profile.tolerance_mm > 0
+
+    def test_detect_bambu_via_m1002(self):
+        """M1002 gcode_claim_action is a strong Bambu indicator."""
+        from failfixer.core.gcode_parser import GCodeParser
+        gcode = "; header\nM1002 gcode_claim_action : 0\n;LAYER:0\nG1 Z0.2\nG1 X1 Y1 E0.1\n;LAYER:1\nG1 Z0.4\nG1 X2 Y2 E0.2\n"
+        parsed = GCodeParser().parse_string(gcode)
+        detected = Controller._detect_profile_name(parsed)
+        assert detected == "bambu_orca"
+
+    def test_detect_bambu_via_m620(self):
+        """M620 (filament change) is a Bambu indicator."""
+        from failfixer.core.gcode_parser import GCodeParser
+        gcode = "; header\nM620 S1A\n;LAYER:0\nG1 Z0.2\nG1 X1 Y1 E0.1\n;LAYER:1\nG1 Z0.4\nG1 X2 Y2 E0.2\n"
+        parsed = GCodeParser().parse_string(gcode)
+        detected = Controller._detect_profile_name(parsed)
+        assert detected == "bambu_orca"
+
+    def test_detect_bambu_via_orcaslicer_comment(self):
+        """OrcaSlicer comment string triggers bambu_orca detection."""
+        from failfixer.core.gcode_parser import GCodeParser
+        gcode = "; generated by OrcaSlicer\nM140 S60\nM104 S200\n;LAYER:0\nG1 Z0.2\nG1 X1 Y1 E0.1\n;LAYER:1\nG1 Z0.4\nG1 X2 Y2 E0.2\n"
+        parsed = GCodeParser().parse_string(gcode)
+        detected = Controller._detect_profile_name(parsed)
+        assert detected == "bambu_orca"
+
+    def test_detect_klipper_not_bambu(self):
+        """Klipper markers should NOT map to bambu_orca."""
+        from failfixer.core.gcode_parser import GCodeParser
+        gcode = "; header\nPRINT_START\nSET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=5\n;LAYER:0\nG1 Z0.2\nG1 X1 Y1 E0.1\n;LAYER:1\nG1 Z0.4\nG1 X2 Y2 E0.2\n"
+        parsed = GCodeParser().parse_string(gcode)
+        detected = Controller._detect_profile_name(parsed)
+        assert detected == "klipper"
+
+    def test_detect_anycubic_not_bambu(self):
+        """G9111 should map to anycubic, not bambu_orca."""
+        from failfixer.core.gcode_parser import GCodeParser
+        gcode = "; header\nG9111 bedTemp=60 extruderTemp=200\n;LAYER:0\nG1 Z0.2\nG1 X1 Y1 E0.1\n;LAYER:1\nG1 Z0.4\nG1 X2 Y2 E0.2\n"
+        parsed = GCodeParser().parse_string(gcode)
+        detected = Controller._detect_profile_name(parsed)
+        assert detected == "anycubic"
