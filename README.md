@@ -1,8 +1,8 @@
-﻿# FailFixer ðŸ”§
+# FailFixer 🔧
 
 **Resume failed 3D prints with one click.**
 
-FailFixer generates a safe resume G-code file from your original failed print. Just tell it what layer the print failed at, and it outputs a new file you can print as if it were a fresh job â€” but it picks up right where the old one stopped.
+FailFixer generates a safe resume G-code file from your original failed print. Just tell it what layer the print failed at, and it outputs a new file you can print as if it were a fresh job — but it picks up right where the old one stopped.
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -10,35 +10,35 @@ FailFixer generates a safe resume G-code file from your original failed print. J
 
 ## Features
 
-- **Simple** â€” Load G-code, pick the failed layer, generate. That's it.
-- **Dual recovery modes** â€” Choose **Resume In-Air** (continue on top of the failed print) or **Restart from Build Plate** (print the missing section separately for glue-up).
-- **Collision-safe** â€” Never homes Z (would crash into your print). Uses smart XY-only homing + G92 position setting.
-- **Multi-firmware** â€” Supports Marlin, Klipper, and RepRapFirmware out of the box.
-- **Drag & drop** â€” Drop your .gcode file right into the window.
-- **Fast** â€” Parses 50MB G-code files in under 2 seconds.
-- **Offline** â€” No internet, no accounts, no telemetry. Everything runs locally.
-- **Standalone .exe** â€” Download and run. No Python installation needed.
+- **Simple** — Load G-code, pick the failed layer, generate. That's it.
+- **Dual recovery modes** — Choose **Resume In-Air** (continue on top of the failed print) or **Restart from Build Plate** (print the missing section separately for glue-up).
+- **Collision-safe** — Never homes Z (would crash into your print). Uses smart XY-only homing + G92 position setting.
+- **Multi-firmware** — Supports Marlin, Klipper, and RepRapFirmware out of the box.
+- **Drag & drop** — Drop your .gcode file right into the window.
+- **Fast** — Parses 50MB G-code files in under 2 seconds.
+- **Offline** — No internet, no accounts, no telemetry. Everything runs locally.
+- **Standalone .exe** — Download and run. No Python installation needed.
 
 ## Activation
 
 FailFixer requires a license key to unlock the Generate feature.
 
-### For Customers â€” Lemon Squeezy (recommended)
+### For Customers — Lemon Squeezy (recommended)
 
 1. Purchase FailFixer from our store (Lemon Squeezy).
 2. You'll receive a **license key** (UUID format, e.g. `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) in your purchase confirmation email.
-3. Launch FailFixer â€” the Activation dialog appears on first run.
+3. Launch FailFixer — the Activation dialog appears on first run.
 4. **Paste your Lemon Squeezy license key** into the License Key field and click **Activate**.
 5. The app contacts the Lemon Squeezy license server to validate and activate your key. No Machine ID exchange needed.
 6. Your activation is stored locally. On subsequent launches, the app re-validates online.
    - If you're offline, a **7-day grace period** from the last successful validation allows continued use.
-7. To view or replace your key later, click the **ðŸ”‘ License** button in the main window.
+7. To view or replace your key later, click the **🔑 License** button in the main window.
 
-### Backup / Offline Mode â€” FFX1 Manual Keys
+### Backup / Offline Mode — FFX1 Manual Keys
 
 If you need fully-offline activation (no internet required), a legacy FFX1 key can be issued manually. The app auto-detects the key format.
 
-**For Seller â€” Generating FFX1 Keys:**
+**For Seller — Generating FFX1 Keys:**
 
 Set your secret once (keep this private!):
 ```bash
@@ -62,14 +62,14 @@ python -m failfixer.tools.generate_license --name "John Doe" --machine <customer
 1. Customer purchases via your store.
 2. Customer sends you their Machine ID (shown in the app activation dialog).
 3. You run `generate_license.py` with their name + machine ID.
-4. You email/DM them the generated `FFX1-â€¦` key.
+4. You email/DM them the generated `FFX1-…` key.
 
 ## Quick Start
 
 ### Option A: Download the .exe (recommended)
 1. Download `FailFixer.exe` from [Releases](../../releases)
 2. Double-click to run
-3. Load your G-code â†’ pick the failed layer â†’ Generate
+3. Load your G-code → pick the failed layer → Generate
 
 ### Option B: Run from source
 ```bash
@@ -117,13 +117,13 @@ python -m failfixer.app.main myprint.gcode --layer 120 --resume-mode from_plate
 
 FailFixer is designed to be safe:
 
-- â›” **Never homes Z** â€” G28 Z drives the nozzle down, which would crash into your partial print
-- âœ… **Homes X/Y only** â€” moves to the bed corner, away from the print
-- âœ… **Lifts Z before travel** â€” always clears the print before any XY movement
-- âœ… **Restores bed mesh** â€” uses saved mesh (M420/BED_MESH_PROFILE), never re-probes
-- âœ… **Validates output** â€” checks for missing temps, Z collisions, unsafe movement order
+- ⛔ **Never homes Z** — G28 Z drives the nozzle down, which would crash into your partial print
+- ✅ **Homes X/Y only** — moves to the bed corner, away from the print
+- ✅ **Lifts Z before travel** — always clears the print before any XY movement
+- ✅ **Restores bed mesh** — uses saved mesh (M420/BED_MESH_PROFILE), never re-probes
+- ✅ **Validates output** — checks for missing temps, Z collisions, unsafe movement order
 
-> âš ï¸ **IMPORTANT:** Your print must remain in the exact same position on the bed! Do not move it, bump the bed, or adjust anything before running the resume file.
+> ⚠️ **IMPORTANT:** Your print must remain in the exact same position on the bed! Do not move it, bump the bed, or adjust anything before running the resume file.
 
 ## Supported Firmware
 
@@ -137,34 +137,34 @@ FailFixer is designed to be safe:
 
 ```
 failfixer/
-â”œâ”€â”€ app/
-â”‚   â”œâ”€â”€ main.py              # CLI entry point
-â”‚   â””â”€â”€ controller.py        # Pipeline orchestrator
-â”œâ”€â”€ core/
-â”‚   â”œâ”€â”€ gcode_parser.py      # 3-tier layer detection parser
-â”‚   â”œâ”€â”€ layer_mapper.py      # Layer â†” Z height mapping
-â”‚   â”œâ”€â”€ resume_generator.py  # Collision-safe resume G-code generator
-â”‚   â”œâ”€â”€ validator.py         # Output safety validation
-â”‚   â”œâ”€â”€ profiles.py          # Printer profile loader
-â”‚   â””â”€â”€ licensing.py         # Offline HMAC-SHA256 license system
-â”œâ”€â”€ ui/
-â”‚   â”œâ”€â”€ main_window.py       # PyQt6 main window + activation dialog
-â”‚   â””â”€â”€ wizard.py            # Step-by-step wizard
-â”œâ”€â”€ tools/
-â”‚   â””â”€â”€ generate_license.py  # Seller-side license key generator CLI
-â”œâ”€â”€ profiles/
-â”‚   â”œâ”€â”€ default_marlin.json
-â”‚   â”œâ”€â”€ klipper.json
-â”‚   â””â”€â”€ reprapfirmware.json
-â”œâ”€â”€ assets/
-â”‚   â”œâ”€â”€ logo.png
-â”‚   â””â”€â”€ logo.ico
-â”œâ”€â”€ tests/
-â”‚   â”œâ”€â”€ test_core.py         # 54 comprehensive tests
-â”‚   â””â”€â”€ test_licensing.py    # 15 licensing tests
-â”œâ”€â”€ run_gui.py               # GUI launcher
-â”œâ”€â”€ build.bat                # PyInstaller build script
-â””â”€â”€ requirements.txt
+├── app/
+│   ├── main.py              # CLI entry point
+│   └── controller.py        # Pipeline orchestrator
+├── core/
+│   ├── gcode_parser.py      # 3-tier layer detection parser
+│   ├── layer_mapper.py      # Layer ↔ Z height mapping
+│   ├── resume_generator.py  # Collision-safe resume G-code generator
+│   ├── validator.py         # Output safety validation
+│   ├── profiles.py          # Printer profile loader
+│   └── licensing.py         # Offline HMAC-SHA256 license system
+├── ui/
+│   ├── main_window.py       # PyQt6 main window + activation dialog
+│   └── wizard.py            # Step-by-step wizard
+├── tools/
+│   └── generate_license.py  # Seller-side license key generator CLI
+├── profiles/
+│   ├── default_marlin.json
+│   ├── klipper.json
+│   └── reprapfirmware.json
+├── assets/
+│   ├── logo.png
+│   └── logo.ico
+├── tests/
+│   ├── test_core.py         # 54 comprehensive tests
+│   └── test_licensing.py    # 15 licensing tests
+├── run_gui.py               # GUI launcher
+├── build.bat                # PyInstaller build script
+└── requirements.txt
 ```
 
 ## Building the .exe
@@ -206,5 +206,10 @@ MIT
 
 ## Credits
 
-Developed by **FleX3Designs** Â· [@SlimQuiggle](https://github.com/SlimQuiggle)
+Developed by **FleX3Designs** · [@SlimQuiggle](https://github.com/SlimQuiggle)
+
+
+
+## Project Handoff
+- See PROJECT_STATUS.md for current state, completed work, open issues, roadmap, and AI contributor rules.
 
