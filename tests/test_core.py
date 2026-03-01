@@ -921,7 +921,8 @@ class TestFailFixerControllerProcess:
             output_path=str(tmp_path / "output_resume.gcode"),
         )
         assert result.output_path.exists()
-        assert result.resume_layer == 1
+        # In-air safety now advances by one layer when selecting by layer number.
+        assert result.resume_layer == 2
         assert result.total_layers == 3
         assert result.line_count > 0
 

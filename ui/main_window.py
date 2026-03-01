@@ -1685,6 +1685,12 @@ class MainWindow(QMainWindow):
         if not save_path:
             return
 
+        # Enforce mode prefix in filename even if user edits the default name.
+        selected = Path(save_path)
+        mode_prefix = "In-Place" if params.get("resume_mode") == "in_air" else "On-Plate"
+        if not selected.name.startswith(f"{mode_prefix}_"):
+            save_path = str(selected.with_name(f"{mode_prefix}_{selected.name}"))
+
         # 4. Run controller
         self.statusBar().showMessage("Generating…")
         self._log("---")

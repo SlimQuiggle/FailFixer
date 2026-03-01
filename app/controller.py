@@ -89,6 +89,18 @@ class Controller:
         if match.warning:
             warnings.append(match.warning)
 
+        # In-air safety: when user selects by layer number, resume from the NEXT
+        # layer to reduce collision risk with partially completed failed layer.
+        if request.resume_mode == "in_air" and isinstance(request.resume_selector, int):
+            for i, lyr in enumerate(parsed.layers):
+                if lyr.number == match.layer.number:
+                    if i + 1 < len(parsed.layers):
+                        match = LayerMatch(layer=parsed.layers[i + 1], warning=match.warning)
+                        warnings.append(
+                            "In-air safety adjustment: starting from next layer to avoid nozzle collision on failed layer."
+                        )
+                    break
+
         # 4. Build config
         fallback_bed_temp = 60.0
         fallback_nozzle_temp = 200.0
