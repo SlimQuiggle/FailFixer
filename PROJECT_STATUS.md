@@ -158,3 +158,14 @@ Public release target: **V1.0.0 (On-Plate first)**
 - Add tests for every compatibility rule added.
 - Prefer small, reviewable commits over broad refactors.
 - Preserve this file as the top-level project handoff ledger.
+
+---
+
+## 9) Session Handoff Shortcut
+
+For quick pickup next session, start with:
+- NEXT_SESSION_TODO.md
+- PROJECT_STATUS.md
+- STARTUP_COMPAT_MATRIX.md
+
+If delegating to Cursor, use the task queue in NEXT_SESSION_TODO.md and require tests on every change.
