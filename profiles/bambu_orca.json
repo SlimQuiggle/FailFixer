@@ -1,0 +1,9 @@
+{
+  "firmware": "bambu_orca",
+  "safe_lift_mm": 10,
+  "park_x": 0,
+  "park_y": 250,
+  "tolerance_mm": 0.15,
+  "bed_mesh_cmd": "M420 S1",
+  "notes": "Bambu/Orca startup profile. Keep in-air conservative; many startup macros may include hidden homing/probing behavior."
+}

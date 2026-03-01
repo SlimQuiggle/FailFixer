@@ -1224,8 +1224,13 @@ class MainWindow(QMainWindow):
         start_mode_row.addWidget(start_mode_label)
 
         self.start_mode_combo = QComboBox()
-        self.start_mode_combo.addItem("Resume in air at fail height (default)", "in_air")
-        self.start_mode_combo.addItem("Restart from plate (for glue workflow)", "from_plate")
+        self.start_mode_combo.addItem("Resume in air at fail height (coming in beta)", "in_air")
+        self.start_mode_combo.addItem("Restart from plate (recommended)", "from_plate")
+        # Public V1: keep in-air functionality in code but disable selection in UI.
+        in_air_item = self.start_mode_combo.model().item(0)
+        if in_air_item is not None:
+            in_air_item.setEnabled(False)
+        self.start_mode_combo.setCurrentIndex(1)
         start_mode_row.addWidget(self.start_mode_combo, stretch=1)
         root.addLayout(start_mode_row)
 
@@ -1241,6 +1246,8 @@ class MainWindow(QMainWindow):
             "auto": "Auto-detect (recommended)",
             "default_marlin": "Marlin",
             "klipper": "Klipper",
+            "anycubic": "Anycubic",
+            "bambu_orca": "Bambu / Orca",
             "reprapfirmware": "RepRapFirmware (Duet)",
         }
         for p in profiles:

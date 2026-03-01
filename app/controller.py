@@ -187,8 +187,22 @@ class Controller:
         """Best-effort firmware profile detection from source G-code."""
         sample = "\n".join(parsed.lines[:1200]).upper()
 
-        # Anycubic / Klipper-style startup macros
-        if "G9111" in sample or "SET_VELOCITY_LIMIT" in sample or "PRINT_START" in sample:
+        # Anycubic proprietary init markers
+        if "G9111" in sample:
+            return "anycubic"
+
+        # Bambu / Orca startup markers
+        if (
+            "BAMBU" in sample
+            or "M1002" in sample
+            or "M620" in sample
+            or "M621" in sample
+            or "ORCASLICER" in sample
+        ):
+            return "bambu_orca"
+
+        # Klipper macros / commands
+        if "SET_VELOCITY_LIMIT" in sample or "PRINT_START" in sample or "START_PRINT" in sample:
             return "klipper"
 
         # RepRapFirmware signatures
