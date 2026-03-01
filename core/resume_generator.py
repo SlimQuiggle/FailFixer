@@ -136,9 +136,9 @@ class ResumeGenerator:
             out.append(f"M190 S{_fmt_temp(config.bed_temp)}           ; Wait for bed temp")
             out.append(f"M109 S{_fmt_temp(config.nozzle_temp)}        ; Wait for nozzle temp")
             out.append("")
-            out.append("; --- Safe Homing (XY only) ---")
-            out.append("; CRITICAL: Do NOT home Z — nozzle would crash into partial print")
-            out.append("G28 X Y                    ; Home X and Y at corner")
+            out.append("; --- Homing ---")
+            out.append("; CRITICAL: No homing in in-air mode. Homing can reset Z and crash into print")
+            out.append("; (intentionally skipped)")
             out.append("")
 
         # --- FailFixer in-air safety sequence ---
@@ -210,13 +210,11 @@ class ResumeGenerator:
                 args = cmd_upper[3:].strip()
                 if not args or "Z" in args:
                     out.append(f"; [FailFixer] Neutralized: {stripped}")
-                    # Replace full G28 with XY-only home
-                    if not args:
-                        out.append("G28 X Y                    ; FailFixer: home XY only (safe for in-air)")
+                    # Do not replace with XY-home. Any homing is unsafe in in-air mode.
                     continue
                 else:
-                    # G28 X, G28 X Y etc — safe
-                    out.append(raw_line)
+                    # Any G28 is unsafe in in-air mode on some firmwares.
+                    out.append(f"; [FailFixer] Neutralized: {stripped}")
                     continue
 
             # Dangerous: G29 (bed probing — nozzle goes down)

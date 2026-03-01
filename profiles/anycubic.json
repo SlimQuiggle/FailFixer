@@ -1,0 +1,9 @@
+{
+  "firmware": "anycubic",
+  "safe_lift_mm": 10,
+  "park_x": 0,
+  "park_y": 250,
+  "tolerance_mm": 0.15,
+  "bed_mesh_cmd": "M420 S1",
+  "notes": "Anycubic (Kobra S1, etc.). Modified Marlin with G9111 proprietary init. G9111 homes all axes + levels + heats — must be neutralized for in-air resume. Uses Klipper-style EXCLUDE_OBJECT and SET_VELOCITY_LIMIT but runs Marlin firmware."
+}
