@@ -12,14 +12,34 @@ from PyQt6.QtWidgets import QApplication
 from failfixer.ui.main_window import MainWindow
 
 
+def _runtime_root() -> Path:
+    """Root folder for source and PyInstaller onefile runtime."""
+    return Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+
+
+def _assets_dir() -> Path:
+    root = _runtime_root()
+    candidates = [
+        root / "assets",
+        root / "failfixer" / "assets",
+        Path(__file__).resolve().parent / "assets",
+    ]
+    for p in candidates:
+        if p.is_dir():
+            return p
+    return candidates[0]
+
+
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("FailFixer")
 
     # Set app-level icon (shows in Windows taskbar)
-    logo_path = Path(__file__).resolve().parent / "assets" / "logo.png"
-    if logo_path.exists():
-        app.setWindowIcon(QIcon(str(logo_path)))
+    icon_path = _assets_dir() / "logo.ico"
+    if not icon_path.exists():
+        icon_path = _assets_dir() / "logo.png"
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
 
     window = MainWindow()
     window.show()

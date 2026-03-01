@@ -706,10 +706,12 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(560, 800)
         self.resize(580, 880)
 
-        # Set window icon
-        logo_path = Path(__file__).resolve().parent.parent / "assets" / "logo.png"
-        if logo_path.exists():
-            self.setWindowIcon(QIcon(str(logo_path)))
+        # Set window icon (prefer .ico for Windows taskbar/title consistency)
+        window_icon = _assets_dir() / "logo.ico"
+        if not window_icon.exists():
+            window_icon = _assets_dir() / "logo.png"
+        if window_icon.exists():
+            self.setWindowIcon(QIcon(str(window_icon)))
 
         self.controller = FailFixerController()
         self._theme_mode = "dark"
