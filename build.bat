@@ -7,7 +7,7 @@ echo === FailFixer Build ===
 REM Install deps if needed
 pip install -r requirements.txt pyinstaller
 
-REM Extract version from __init__.py (e.g. "v0.2.0-beta")
+REM Extract version from __init__.py (e.g. "v0.2.1-beta")
 for /f "usebackq tokens=*" %%V in (`python get_version.py`) do set FF_VERSION=%%V
 
 if "%FF_VERSION%"=="" (
@@ -17,7 +17,7 @@ if "%FF_VERSION%"=="" (
 
 echo Building FailFixer %FF_VERSION%...
 
-REM Build single-file executable with version in filename
+REM Build single-file executable with version in filename (no overwrite of prior versions)
 pyinstaller --onefile --windowed ^
     --icon=assets\logo.ico ^
     --add-data "assets;assets" ^
@@ -25,13 +25,7 @@ pyinstaller --onefile --windowed ^
     --name FailFixer_%FF_VERSION% ^
     run_gui.py
 
-REM Also copy to stable filename for convenience
-if exist "dist\FailFixer_%FF_VERSION%.exe" (
-    copy /Y "dist\FailFixer_%FF_VERSION%.exe" "dist\FailFixer.exe" >nul
-)
-
 echo.
-echo Build complete. Outputs:
+echo Build complete. Output:
 echo   dist\FailFixer_%FF_VERSION%.exe
-echo   dist\FailFixer.exe
 pause
