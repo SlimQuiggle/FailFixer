@@ -138,7 +138,7 @@ class Controller:
 
         # 7. Save
         output_path = self._build_output_path(
-            input_path, match.layer.number, request.output_dir
+            input_path, match.layer.number, request.output_dir, request.resume_mode
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8", newline="\n") as fh:
@@ -191,10 +191,12 @@ class Controller:
         input_path: Path,
         layer_number: int,
         output_dir: str | Path | None,
+        resume_mode: str = "in_air",
     ) -> Path:
         stem = input_path.stem
         suffix = input_path.suffix or ".gcode"
-        name = f"{stem}_resume_layer{layer_number:04d}{suffix}"
+        mode_prefix = "In-Place" if resume_mode == "in_air" else "On-Plate"
+        name = f"{mode_prefix}_{stem}_resume_layer{layer_number:04d}{suffix}"
         if output_dir is not None:
             return Path(output_dir) / name
         return input_path.parent / name

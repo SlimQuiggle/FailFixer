@@ -1463,11 +1463,12 @@ class MainWindow(QMainWindow):
     def _default_output_name(self, params: dict) -> str:
         """Generate the default output filename."""
         src = Path(params["gcode_path"])
+        mode_prefix = "In-Place" if params.get("resume_mode") == "in_air" else "On-Plate"
         if "layer_num" in params:
             tag = f"resume_layer{params['layer_num']:04d}"
         else:
             tag = f"resume_z{params['z_height']:.2f}".replace(".", "_")
-        return f"{src.stem}_{tag}.gcode"
+        return f"{mode_prefix}_{src.stem}_{tag}.gcode"
 
     def _log(self, text: str) -> None:
         self.status_text.append(text)
