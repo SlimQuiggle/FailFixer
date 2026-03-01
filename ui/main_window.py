@@ -1011,6 +1011,56 @@ class MainWindow(QMainWindow):
         if self._theme_mode == "light":
             css = self._to_light_css(css)
         self.setStyleSheet(css)
+        self._apply_mode_specific_button_styles()
+
+    def _apply_mode_specific_button_styles(self) -> None:
+        """Adjust footer button colors for current theme mode."""
+        if not all(hasattr(self, n) for n in ("faq_btn", "legal_btn", "bug_btn", "license_btn")):
+            return
+
+        if self._theme_mode == "light":
+            self.faq_btn.setStyleSheet(
+                "QPushButton { background-color: #d0d0d0; color: #1d1d1d; "
+                "font-weight: 600; border: 1px solid #9a9a9a; border-radius: 6px; padding: 6px 16px; }"
+                "QPushButton:hover { background-color: #c3c3c3; border-color: #7f7f7f; }"
+            )
+            self.legal_btn.setStyleSheet(
+                "QPushButton { background-color: #d0d0d0; color: #1d1d1d; "
+                "font-weight: 600; border: 1px solid #9a9a9a; border-radius: 6px; padding: 6px 16px; }"
+                "QPushButton:hover { background-color: #c3c3c3; border-color: #7f7f7f; }"
+            )
+            self.bug_btn.setStyleSheet(
+                "QPushButton { background-color: #d0d0d0; color: #1d1d1d; "
+                "font-weight: 600; border: 1px solid #9a9a9a; border-radius: 6px; padding: 6px 16px; }"
+                "QPushButton:hover { background-color: #c3c3c3; border-color: #7f7f7f; }"
+            )
+            self.license_btn.setStyleSheet(
+                "QPushButton { background-color: #d0d0d0; color: #1d1d1d; "
+                "font-weight: 600; border: 1px solid #9a9a9a; border-radius: 6px; padding: 4px 12px; font-size: 12px; }"
+                "QPushButton:hover { background-color: #c3c3c3; border-color: #7f7f7f; }"
+            )
+        else:
+            self.faq_btn.setStyleSheet(
+                "QPushButton { background-color: #0f3460; color: #00d4aa; "
+                "font-weight: 600; border: 1px solid #00d4aa; border-radius: 6px; padding: 6px 16px; }"
+                "QPushButton:hover { background-color: #1a4a7a; border-color: #66e0c6; }"
+            )
+            self.legal_btn.setStyleSheet(
+                "QPushButton { background-color: #2a1a2e; color: #ff6b35; "
+                "font-weight: 600; border: 1px solid #ff6b35; border-radius: 6px; padding: 6px 16px; }"
+                "QPushButton:hover { background-color: #3a223f; border-color: #ff8855; }"
+            )
+            self.bug_btn.setStyleSheet(
+                "QPushButton { background-color: #132a3a; color: #5cd6ff; "
+                "font-weight: 600; border: 1px solid #5cd6ff; border-radius: 6px; padding: 6px 16px; }"
+                "QPushButton:hover { background-color: #1d3b50; border-color: #7fe1ff; }"
+            )
+            self.license_btn.setStyleSheet(
+                "QPushButton { background-color: #2a1a2e; color: #00d4aa; "
+                "font-weight: 600; border: 1px solid #00d4aa; border-radius: 6px; "
+                "padding: 4px 12px; font-size: 12px; }"
+                "QPushButton:hover { background-color: #3a223f; border-color: #66e0c6; }"
+            )
 
     def _to_light_css(self, css: str) -> str:
         """Quick color remap for a usable light mode."""
@@ -1292,37 +1342,37 @@ class MainWindow(QMainWindow):
         info_buttons = QHBoxLayout()
 
         faq_btn = QPushButton("❓  FAQ - Common Questions")
-        faq_btn.setStyleSheet(
+        self.faq_btn.setStyleSheet(
             "QPushButton { background-color: #0f3460; color: #00d4aa; "
             "font-weight: 600; border: 1px solid #00d4aa; border-radius: 6px; "
             "padding: 6px 16px; }"
             "QPushButton:hover { background-color: #1a4a7a; }"
         )
-        faq_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        faq_btn.clicked.connect(self._show_faq)
-        info_buttons.addWidget(faq_btn)
+        self.faq_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.faq_btn.clicked.connect(self._show_faq)
+        info_buttons.addWidget(self.faq_btn)
 
-        legal_btn = QPushButton("⚖️  License & Liability")
-        legal_btn.setStyleSheet(
+        self.legal_btn = QPushButton("⚖️  License & Liability")
+        self.legal_btn.setStyleSheet(
             "QPushButton { background-color: #2a1a2e; color: #ff6b35; "
             "font-weight: 600; border: 1px solid #ff6b35; border-radius: 6px; "
             "padding: 6px 16px; }"
             "QPushButton:hover { background-color: #3a223e; }"
         )
-        legal_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        legal_btn.clicked.connect(self._show_license)
-        info_buttons.addWidget(legal_btn)
+        self.legal_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.legal_btn.clicked.connect(self._show_license)
+        info_buttons.addWidget(self.legal_btn)
 
-        bug_btn = QPushButton("🐞  Report Bug")
-        bug_btn.setStyleSheet(
+        self.bug_btn = QPushButton("🐞  Report Bug")
+        self.bug_btn.setStyleSheet(
             "QPushButton { background-color: #132a3a; color: #5cd6ff; "
             "font-weight: 600; border: 1px solid #5cd6ff; border-radius: 6px; "
             "padding: 6px 16px; }"
             "QPushButton:hover { background-color: #18364a; }"
         )
-        bug_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        bug_btn.clicked.connect(self._show_bug_report)
-        info_buttons.addWidget(bug_btn)
+        self.bug_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.bug_btn.clicked.connect(self._show_bug_report)
+        info_buttons.addWidget(self.bug_btn)
 
         root.addLayout(info_buttons)
 
@@ -1336,6 +1386,7 @@ class MainWindow(QMainWindow):
 
         # Status bar
         self.setStatusBar(QStatusBar())
+        self._apply_mode_specific_button_styles()
         self.statusBar().showMessage("Ready")
 
     # ------------------------------------------------------------------
@@ -1674,6 +1725,7 @@ class MainWindow(QMainWindow):
             "Success",
             f"Resume G-code saved to:\n{result.output_path}",
         )
+
 
 
 
